@@ -1,0 +1,17 @@
+{
+  "name": "pdemon-portage",
+  "version": "0.1.0",
+  "author": "Phil DeMonaco",
+  "license": "Apache-2.0",
+  "summary": "Manages the configuration of the portage package manager on Gentoo",
+  "source": "https://github.com/pdemonaco-iac/puppet-portage",
+  "dependencies": [],
+  "requirements": [
+    {
+      "name": "openvox",
+      "version_requirement": ">= 7.0.0 < 9.0.0"
+    }
+  ],
+  "operatingsystem_support": [],
+  "tags": []
+}
