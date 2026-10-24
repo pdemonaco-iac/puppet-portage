@@ -1,0 +1,115 @@
+name: 75 - Release - Generate Tag & Changelog
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+
+jobs:
+  release:
+    name: 75 - Release - Generate Tag & Changelog
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TARGET_BRANCH: ${{ github.ref_name }}
+    steps:
+      # Mint a short-lived token for a GitHub App that is on the master
+      # ruleset's bypass list, so the release commits can be pushed to the
+      # protected branch without satisfying the required status checks.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          # Persist the App token so `git push` authenticates as the App
+          # (the bypass actor) rather than github-actions[bot].
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: true
+
+      - name: Determine release version
+        run: |
+          version="$(jq -r '.version' metadata.json)"
+          if [ -z "${version}" ] || [ "${version}" = "null" ]; then
+            echo "Unable to determine version from metadata.json" >&2
+            exit 1
+          fi
+          echo "RELEASE_VERSION=${version}" >> "${GITHUB_ENV}"
+          echo "RELEASE_TAG=${version}" >> "${GITHUB_ENV}"
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install release dependencies
+        run: |
+          bundle config set --local without 'system_tests'
+          bundle config set --local with 'development release_prep release'
+          bundle install --jobs 4 --retry 3
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Generate REFERENCE.md
+        run: |
+          bundle exec rake strings:generate:reference
+          if [ -n "$(git status --porcelain REFERENCE.md)" ]; then
+            git add REFERENCE.md
+            git commit -m "docs(reference): update REFERENCE.md"
+          fi
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --verbose --tag ${{ env.RELEASE_TAG }}
+        env:
+          OUTPUT: CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Commit changelog
+        run: |
+          if [ -n "$(git status --porcelain CHANGELOG.md)" ]; then
+            git add CHANGELOG.md
+            git commit -m "chore(changelog): update ${RELEASE_VERSION} changelog"
+          fi
+
+      - name: Create release tag
+        run: |
+          if git rev-parse "${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Tag ${RELEASE_TAG} already exists" >&2
+            exit 1
+          fi
+          git tag -a "${RELEASE_TAG}" -m "Release ${RELEASE_VERSION}"
+
+      - name: Push changes and tag
+        run: |
+          git push origin "HEAD:${TARGET_BRANCH}"
+          git push origin "${RELEASE_TAG}"
+
+      # Temporary, uncommitted edit: runs after the push above so it is never
+      # committed. It only affects the working tree that rake module:build packages into the
+      # release tarball, so the published README badges reference the tag.
+      - name: Point README badges at release tag (not committed)
+        run: |
+          sed -i "s#\(check-runs/[^?)]*\)/master#\1/${RELEASE_TAG}#g" README.md
+
+      - name: Build and publish module to Puppet Forge
+        env:
+          BLACKSMITH_FORGE_API_KEY: ${{ secrets.PUPPET_FORGE_PUBLISH_API }}
+        run: |
+          BLACKSMITH_FORGE_USERNAME="$(jq -r '.name | split("-")[0]' metadata.json)"
+          export BLACKSMITH_FORGE_USERNAME
+          bundle exec rake module:build
+          bundle exec rake module:push
