@@ -4,3 +4,67 @@ lookup_options:
     merge:
       strategy: deep
       knockout_prefix: '--'
+  portage::repos_default:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::repositories:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::profile:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::binrepos_default:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::binrepos:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::package_use:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::accept_keywords:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::licenses:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::masks:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::unmasks:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::package_envs:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::envs:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::sets:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::patches:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::postsync:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::purge_ignore:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
