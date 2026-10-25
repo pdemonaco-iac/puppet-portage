@@ -6,7 +6,7 @@
 type Portage::Makeconfig = Struct[{
   Optional['ACCEPT_CHOSTS']                       => Array[Portage::Token],
   Optional['ACCEPT_KEYWORDS']                     => Array[Portage::Keyword],
-  Optional['ACCEPT_LICENSE']                      => Array[Pattern[/\A(-?\*|-?@?[A-Za-z0-9][A-Za-z0-9+_.-]*)\z/]],
+  Optional['ACCEPT_LICENSE']                      => Array[Portage::Licensetoken],
   Optional['ACCEPT_PROPERTIES']                   => Array[Pattern[/\A(-?\*|-?[A-Za-z0-9_][A-Za-z0-9_+.-]*)\z/]],
   Optional['ACCEPT_RESTRICT']                     => Array[Pattern[/\A(-?\*|-?[A-Za-z0-9_][A-Za-z0-9_+.-]*)\z/]],
   Optional['ALLOW_TEST']                          => Array[Enum['all', 'network', 'privileged']],
