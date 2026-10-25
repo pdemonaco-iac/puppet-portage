@@ -36,15 +36,10 @@ define portage::atomfile (
     default => $filename,
   }
 
-  unless defined(File[$dir]) {
-    file { $dir:
-      ensure  => directory,
-      owner   => 'root',
-      group   => 'root',
-      mode    => '0755',
-      recurse => $purge,
-      purge   => $purge,
-      ignore  => $purge_ignore,
+  unless defined(Portage::Managed_dir[$dir]) {
+    portage::managed_dir { $dir:
+      purge        => $purge,
+      purge_ignore => $purge_ignore,
     }
   }
 
