@@ -1,6 +1,6 @@
 # @summary Manages one repos.conf/<name>.conf of a target.
 #
-# The only exec is a refreshonly `emaint sync -r <name>`, and only for the
+# The exec here is a refreshonly `emaint sync -r <name>`, and only for the
 # host root (`/`); chroots bind-mount the host's repositories.
 #
 # @param root

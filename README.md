@@ -45,8 +45,9 @@ directories. The module does not use `eselect profile` or `eselect repository`.
 * On the build host: `rsyncd` serving `/srv/portage-mirror/*`, the
   `target-emerge` chroot wrapper, the `portage-publish` script, and the
   binpkg signing key.
-* The only `exec` is a `refreshonly` `emaint sync -r <name>`, for host-rooted
-  targets.
+* There are two `exec`s: a `refreshonly` `emaint sync -r <name>` for host-rooted
+  targets, and, on the build host, a `gpg --import` of the binpkg signing key
+  that runs only while the key is missing from a root's signing GnuPG home.
 
 ### Setup requirements
 
