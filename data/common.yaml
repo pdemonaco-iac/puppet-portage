@@ -68,5 +68,13 @@ lookup_options:
     merge:
       strategy: deep
       knockout_prefix: '--'
+  portage::buildhost::targets:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
+  portage::buildhost::upstream_binrepo:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
   portage::buildhost::signing::private_key:
     convert_to: Sensitive

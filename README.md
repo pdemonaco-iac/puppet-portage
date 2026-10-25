@@ -70,6 +70,41 @@ for `portage::*` hashes. Consumers point `repos.conf` at the build host's rsync
 mirror and list the build host first, upstream second, in `binrepos`. Each
 consumer with a distinct USE set needs a matching build host target.
 
+### Bootstrapping a build target
+
+The module never creates a target's root; bootstrap each one from a stage3
+before the first run. For a target named `desktop` in
+`portage::buildhost::targets`:
+
+1. Pick the stage3 that matches the target's profile (for example `amd64-desktop-systemd`)
+   from the [Gentoo downloads page](https://www.gentoo.org/downloads/).
+2. Unpack it into the target's root, as in the
+   [Handbook](https://wiki.gentoo.org/wiki/Handbook:AMD64/Installation/Stage):
+
+   ```shell
+   mkdir -p /var/lib/portage-targets/desktop
+   tar xpf stage3-amd64-desktop-systemd-*.tar.xz --xattrs-include='*.*' \
+       --numeric-owner -C /var/lib/portage-targets/desktop
+   ```
+3. Run the agent. It writes the target's `/etc/portage` (including `make.conf`,
+   `repos.conf`, `binrepos.conf` and the signing key) and installs
+   `/usr/local/sbin/target-emerge`. The host syncs the repositories; chroots
+   only see them read-only.
+4. Build with the wrapper, which sets up the
+   [chroot](https://wiki.gentoo.org/wiki/Chroot) bind mounts for the run:
+
+   ```shell
+   target-emerge desktop --update --deep --newuse @world
+   ```
+   Packages come from the upstream binhost where the USE flags match and are
+   compiled otherwise; see the
+   [Binary package guide](https://wiki.gentoo.org/wiki/Binary_package_guide).
+   If upstream signature verification fails because the target has no keyring
+   yet, run `chroot /var/lib/portage-targets/desktop getuto` once.
+
+Keep the target's profile aligned with the upstream binhost's (23.0, the same
+init system) to maximise binary package hits, and keep GCC current.
+
 ### Build host signing key
 
 The build host signs binpkgs with a dedicated key that has no passphrase.
