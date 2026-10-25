@@ -26,6 +26,7 @@ describe 'portage::target' do
         profile: { 'path' => 'default/linux/amd64/23.0' },
         binrepos_default: { 'frozen' => false },
         binrepos: { 'buildhost' => { 'sync_uri' => 'https://binhost.example.org/amd64', 'priority' => 10 } },
+        binhost_keys: { 'buildhost' => { 'fingerprint' => '0123456789ABCDEF0123456789ABCDEF01234567', 'public_key' => "-----BEGIN PGP PUBLIC KEY BLOCK-----\nx\n-----END PGP PUBLIC KEY BLOCK-----\n" } },
         package_use: { 'use' => { 'entries' => { 'dev-lang/rust' => ['clippy'] } } },
         accept_keywords: { 'keywords' => { 'entries' => { 'dev-lang/rust' => ['~amd64'] } } },
         licenses: { 'licenses' => { 'entries' => { 'sys-kernel/linux-firmware' => ['linux-fw-redistributable'] } } },
@@ -48,6 +49,7 @@ describe 'portage::target' do
     it { is_expected.to contain_file('/etc/portage/make.profile').with_target('../../var/db/repos/gentoo/profiles/default/linux/amd64/23.0') }
     it { is_expected.to contain_portage__binrepos_default('host/binrepos_default') }
     it { is_expected.to contain_portage__binrepo('host/buildhost') }
+    it { is_expected.to contain_portage__binhost_key('host/buildhost').with_root('/') }
     it { is_expected.to contain_portage__package_use('host/use') }
     it { is_expected.to contain_portage__accept_keywords('host/keywords') }
     it { is_expected.to contain_portage__license('host/licenses') }

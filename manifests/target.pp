@@ -20,6 +20,8 @@
 #   Parameters of portage::binrepos_default (the binrepos.conf [DEFAULT] section).
 # @param binrepos
 #   portage::binrepo resources.
+# @param binhost_keys
+#   portage::binhost_key resources.
 # @param package_use
 #   portage::package_use resources.
 # @param accept_keywords
@@ -54,6 +56,7 @@ define portage::target (
   Optional[Hash[String[1], Any]] $profile = undef,
   Optional[Hash[String[1], Any]] $binrepos_default = undef,
   Portage::Resources $binrepos = {},
+  Portage::Resources $binhost_keys = {},
   Portage::Resources $package_use = {},
   Portage::Resources $accept_keywords = {},
   Portage::Resources $licenses = {},
@@ -106,6 +109,7 @@ define portage::target (
   $collections = {
     'repositories'    => ['portage::repository', $repositories, {}],
     'binrepos'        => ['portage::binrepo', $binrepos, {}],
+    'binhost_keys'    => ['portage::binhost_key', $binhost_keys, {}],
     'package_use'     => ['portage::package_use', $package_use, {}],
     'accept_keywords' => ['portage::accept_keywords', $accept_keywords, {}],
     'licenses'        => ['portage::license', $licenses, {}],

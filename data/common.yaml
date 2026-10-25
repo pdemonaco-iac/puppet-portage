@@ -24,6 +24,10 @@ lookup_options:
     merge:
       strategy: deep
       knockout_prefix: '--'
+  portage::binhost_keys:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
   portage::package_use:
     merge:
       strategy: deep

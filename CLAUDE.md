@@ -70,7 +70,7 @@ Declaratively manage Gentoo Portage configuration on consumer nodes and on a bui
 
 - No `eselect profile` / `eselect repository`: `make.profile` is a relative symlink; one `repos.conf/<name>.conf` per repo.
 - Managed dirs purge by default (`purge_ignore` escape hatch); never purge `/etc/portage/gnupg`.
-- Only two execs: `refreshonly` `emaint sync -r <name>` (host-rooted targets only) and the `unless`-guarded `gpg --import` of the binpkg signing key (`buildhost::signing`).
+- Execs are limited to: `refreshonly` `emaint sync -r <name>` (host-rooted targets only); the `unless`-guarded `gpg --import` of the binpkg signing key (`buildhost::signing`); and, in `binhost_key`, `getuto` (`creates` the keyring) plus the `unless`-guarded import and local signing of a binhost key.
 - Repo transport is rsync end to end (upstream -> build host -> consumers). Chroots bind-mount the host repos read-only; only the host syncs.
 - Hiera `lookup_options` deep merge with `knockout_prefix: '--'` for `portage::*` hashes.
 

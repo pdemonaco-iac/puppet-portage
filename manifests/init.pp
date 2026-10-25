@@ -19,6 +19,8 @@
 #   Parameters of portage::binrepos_default.
 # @param binrepos
 #   portage::binrepo resources.
+# @param binhost_keys
+#   portage::binhost_key resources.
 # @param package_use
 #   portage::package_use resources.
 # @param accept_keywords
@@ -60,6 +62,7 @@ class portage (
   Optional[Hash[String[1], Any]] $profile = undef,
   Optional[Hash[String[1], Any]] $binrepos_default = undef,
   Portage::Resources $binrepos = {},
+  Portage::Resources $binhost_keys = {},
   Portage::Resources $package_use = {},
   Portage::Resources $accept_keywords = {},
   Portage::Resources $licenses = {},
@@ -81,6 +84,7 @@ class portage (
     profile          => $profile,
     binrepos_default => $binrepos_default,
     binrepos         => $binrepos,
+    binhost_keys     => $binhost_keys,
     package_use      => $package_use,
     accept_keywords  => $accept_keywords,
     licenses         => $licenses,
