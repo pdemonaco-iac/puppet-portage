@@ -8,6 +8,8 @@ require 'voxpupuli/test/spec_helper'
 
 RSpec.configure do |c|
   c.facterdb_string_keys = false
+  c.strict_variables = true
+  c.before(:each) { Puppet.settings[:strict] = :error }
 end
 
 add_mocked_facts!

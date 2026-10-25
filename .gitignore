@@ -26,3 +26,4 @@ bolt-debug.log
 .task_cache.json
 .rerun.json
 .DS_Store
+portage-module-plan.md

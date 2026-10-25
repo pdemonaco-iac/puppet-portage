@@ -1,121 +1,96 @@
 # portage
 
-Welcome to your new module.
-You can read more about the parts of a module in the [module documentation][docs].
+Declarative management of Gentoo Portage configuration with OpenVox, for both
+ordinary Gentoo nodes and a binary package build host.
 
-See the [DevKit guide][devkit] for information on how to run the built in tests or to configure and use optional functionality.
-If you want to use the GitHub Changelog Generator, you'll need to check the configuration in the `Rakefile`.
-
-The README template below provides a starting point with details about what
-information to include in your README.
+> **Status:** design phase. See [`portage-module-plan.md`](portage-module-plan.md);
+> most of what is described below is not implemented yet.
 
 ## Table of Contents
 
 1. [Description](#description)
-1. [Setup - The basics of getting started with portage](#setup)
-    * [What portage affects](#what-portage-affects)
-    * [Setup requirements](#setup-requirements)
-    * [Beginning with portage](#beginning-with-portage)
-1. [Usage - Configuration options and additional functionality](#usage)
-1. [Limitations - OS compatibility, etc.](#limitations)
-1. [Development - Guide for contributing to the module](#development)
+1. [Setup](#setup)
+1. [Usage](#usage)
+1. [Limitations](#limitations)
+1. [Development](#development)
 
 ## Description
 
-Briefly tell users why they might want to use your module. Explain what your
-module does and what kind of problems users can solve with it.
+The module lays down Portage configuration only. It never runs builds or
+`emerge @world`. It serves two roles:
 
-This should be a fairly short description helps the user decide if your module
-is what they want.
+* **Consumers** — Gentoo nodes whose `/etc/portage` is managed from Hiera.
+* **Build host** — produces signed binpkgs from per-target chroots, and serves
+  a published rsync mirror of the repositories plus a binhost to consumers.
+
+Everything is keyed off a *config root*. The `portage::target` defined type owns
+one complete config root: the host is `portage::target { 'host': root => '/' }`,
+and each build chroot is the same type rooted at
+`/var/lib/portage-targets/<name>`. Both `class portage` (host target) and
+`class portage::buildhost` (a `targets` hash, one target per chroot) accept the
+same parameter schema.
+
+Managed per target: `make.conf` (rendered from a single hash), the
+`make.profile` symlink (relative, so it is valid inside a chroot), `repos.conf`,
+`binrepos.conf`, and the `package.*`, `env`, `sets`, `patches` and `postsync.d`
+directories. The module does not use `eselect profile` or `eselect repository`.
 
 ## Setup
 
-### What portage affects **OPTIONAL**
+### What portage affects
 
-If it's obvious what your module touches, you can skip this section. For
-example, folks can probably figure out that your mysql_instance module affects
-their MySQL instances.
+* Files and directories under `/etc/portage` of each target root. Managed
+  directories are **purged by default**; `/etc/portage/gnupg` is never purged.
+  Run `--noop` before the first apply on an existing node.
+* On the build host: `rsyncd` serving `/srv/portage-mirror/*`, the
+  `target-emerge` chroot wrapper, the `portage-publish` script, and the
+  binpkg signing key.
+* The only `exec` is a `refreshonly` `emaint sync -r <name>`, for host-rooted
+  targets.
 
-If there's more that they should know about, though, this is the place to
-mention:
+### Setup requirements
 
-* Files, packages, services, or operations that the module will alter, impact,
-  or execute.
-* Dependencies that your module automatically installs.
-* Warnings or other important notices.
-
-### Setup Requirements **OPTIONAL**
-
-If your module requires anything extra before setting up (pluginsync enabled,
-another module, etc.), mention it here.
-
-If your most recent release breaks compatibility or requires particular steps
-for upgrading, you might want to include an additional "Upgrading" section here.
-
-### Beginning with portage
-
-The very basic steps needed for a user to get the module up and running. This
-can include setup steps, if necessary, or it can be an example of the most basic
-use of the module.
+* OpenVox 8.x or later (agent and server), with Hiera 5 and eyaml.
+* Gentoo on x86-64. Other architectures are out of scope.
+* Stage3 bootstrap of build chroots is manual or scripted outside this module.
 
 ## Usage
 
-Include usage examples for common use cases in the **Usage** section. Show your
-users how to use your module to solve problems, and be sure to include code
-examples. Include three to five examples of the most important or common tasks a
-user can accomplish with your module. Show users how to accomplish more complex
-tasks that involve different types, classes, and functions working in tandem.
+Consumers (`profile::gentoo::portage`):
 
-## Reference
-
-This section is deprecated. Instead, add reference information to your code as
-Puppet Strings comments, and then use Strings to generate a REFERENCE.md in your
-module. For details on how to add code comments and generate documentation with
-Strings, see the [Puppet Strings documentation][strings] and [style guide][style].
-
-If you aren't ready to use Strings yet, manually create a REFERENCE.md in the
-root of your module directory and list out each of your module's classes,
-defined types, facts, functions, Puppet tasks, task plans, and resource types
-and providers, along with the parameters for each.
-
-For each element (class, defined type, function, and so on), list:
-
-* The data type, if applicable.
-* A description of what the element does.
-* Valid values, if the data type doesn't make it obvious.
-* Default value, if any.
-
-For example:
-
+```puppet
+include portage
 ```
-### `pet::cat`
 
-#### Parameters
+Build host (`profile::gentoo::buildhost`):
 
-##### `meow`
-
-Enables vocalization in your cat. Valid options: 'string'.
-
-Default: 'medium-loud'.
+```puppet
+include portage::buildhost
 ```
+
+Both are configured through Hiera, using deep merge with `knockout_prefix: '--'`
+for `portage::*` hashes. Consumers point `repos.conf` at the build host's rsync
+mirror and list the build host first, upstream second, in `binrepos`. Each
+consumer with a distinct USE set needs a matching build host target.
 
 ## Limitations
 
-In the Limitations section, list any incompatibilities, known issues, or other
-warnings.
+* Gentoo only; x86-64 only.
+* Patches apply on the next rebuild; changing them triggers no rebuild.
+* Git-sourced overlays carry no signed MetaManifest, so consumers cannot verify
+  them over rsync.
+* Off-LAN consumers keep a stale but usable tree; the build host must be
+  reachable (for example over VPN) for full function.
 
 ## Development
 
-In the Development section, tell other users the ground rules for contributing
-to your project and how they should submit their work.
+Uses the OpenVox standard tools, [jig](https://github.com/voxpupuli/jig) and
+[voxbox](https://github.com/voxpupuli/container-voxbox):
 
-## Release Notes/Contributors/Etc. **Optional**
+```bash
+jig validate
+jig test unit
+```
 
-If you aren't using changelog, put your release notes here (though you should
-consider using changelog). You can also add any additional sections you feel are
-necessary or important to include here. Please use the `##` header.
-
-[docs]: https://docs.openvoxproject.org/openvox/latest/modules_fundamentals.html
-[devkit]: https://docs.openvoxproject.org/ecosystem/latest/devkit/index.html
-[strings]: https://docs.openvoxproject.org/openvox/latest/modules_documentation.html
-[style]: https://docs.openvoxproject.org/openvox/latest/openvox_strings_style.html
+Commits follow conventional commit syntax. The design and the list of items
+still to verify are in [`portage-module-plan.md`](portage-module-plan.md).

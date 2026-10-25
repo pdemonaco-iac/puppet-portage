@@ -9,9 +9,16 @@
   "requirements": [
     {
       "name": "openvox",
-      "version_requirement": ">= 7.0.0 < 9.0.0"
+      "version_requirement": ">= 8.0.0 < 9.0.0"
     }
   ],
-  "operatingsystem_support": [],
+  "operatingsystem_support": [
+    {
+      "operatingsystem": "Gentoo",
+      "operatingsystemrelease": [
+        "rolling"
+      ]
+    }
+  ],
   "tags": []
 }

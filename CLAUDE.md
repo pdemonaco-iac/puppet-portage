@@ -53,15 +53,28 @@ pdk-litmus-test spec/acceptance/kea_dhcp_spec.json
 
 ## Architecture
 
+Full design: `portage-module-plan.md` (status: design, not implemented). Read it before adding code.
+
+### Purpose
+
+Declaratively manage Gentoo Portage configuration on consumer nodes and on a build host that produces signed binpkgs and serves an rsync repo mirror plus binhost. Puppet writes configuration only; it never runs builds or `emerge @world`.
+
 ### Module Structure
 
-The module follows the standard Puppet pattern with `install` -> `config` -> `service` class ordering:
+- Everything is keyed off a config root. `portage::target` (defined type) owns one root: host is `root => '/'`, chroots are `/var/lib/portage-targets/<name>`. Inner resource titles are `"${target}/${key}"`.
+- `class portage` -> host target from Hiera. `class portage::buildhost` -> `targets` hash, one target per chroot (plus `buildhost::mirror`, `::publish`, `::signing`). Both take the same parameter schema.
+- Per-resource defined types: `repository`, `profile`, `binrepo`, `binhost_key`, `set`, `package_use`, `accept_keywords`, `license`, `mask`, `package_env`, `env`, `patch`, `postsync`. `makeconf` renders `make.conf` from one hash via EPP; `atomfile` is the private generic.
+- Type aliases validate atoms, USE flags, keywords; reject `-march=native` in non-host targets.
 
-### Custom Resource Types
+### Conventions
 
-The module provides custom types in `lib/puppet/type/`:
-
+- No `eselect profile` / `eselect repository`: `make.profile` is a relative symlink; one `repos.conf/<name>.conf` per repo.
+- Managed dirs purge by default (`purge_ignore` escape hatch); never purge `/etc/portage/gnupg`.
+- Only exec is `refreshonly` `emaint sync -r <name>`, host-rooted targets only.
+- Repo transport is rsync end to end (upstream -> build host -> consumers). Chroots bind-mount the host repos read-only; only the host syncs.
+- Hiera `lookup_options` deep merge with `knockout_prefix: '--'` for `portage::*` hashes.
 
 ### Platform Support
 
-Gentoo only (irrelevant elsewhere)
+- Gentoo only, x86-64 only. OpenVox 8.x+.
+- Code must be clean under OpenVox 8 defaults: `strict = error`, `strict_variables = true`, structured facts only (`$facts['os']['family']`), typed parameters, `stdlib::` namespaced functions, no `puppetlabs-concat`, Ruby 3.2+ for custom facts/functions.
