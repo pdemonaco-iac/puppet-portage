@@ -1,1 +1,6 @@
---- {}
+---
+lookup_options:
+  portage::make_conf:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
