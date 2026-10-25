@@ -25,6 +25,7 @@ describe 'portage::buildhost' do
     it { is_expected.to compile.with_all_deps }
     it { is_expected.to contain_file('/usr/local/sbin/target-emerge').with(ensure: 'file', mode: '0755', owner: 'root') }
     it { is_expected.not_to contain_class('portage::buildhost::signing') }
+    it { is_expected.to contain_class('portage::buildhost::publish').with(targets: [], target_emerge: '/usr/local/sbin/target-emerge') }
   end
 
   context 'with a targets hash' do
@@ -48,6 +49,17 @@ describe 'portage::buildhost' do
     it { is_expected.not_to contain_file('/var/lib/portage-targets/desktop/etc/portage/binrepos.conf/extra.conf') }
     it { is_expected.to contain_file('/var/cache/portage-targets/desktop').with(ensure: 'directory') }
     it { is_expected.to contain_file('/var/cache/portage-targets/server').with(ensure: 'directory') }
+    it { is_expected.to contain_class('portage::buildhost::publish').with_targets(%w[desktop server]) }
+    it { is_expected.to contain_file('/usr/local/sbin/portage-publish').with_content(%r{^targets=\(desktop server\)$}) }
+    it { is_expected.to contain_file('/srv/binhost/desktop') }
+  end
+
+  context 'without publish' do
+    let(:params) { { targets: targets, signing: false, publish: false } }
+
+    it { is_expected.to compile.with_all_deps }
+    it { is_expected.not_to contain_class('portage::buildhost::publish') }
+    it { is_expected.not_to contain_file('/usr/local/sbin/portage-publish') }
   end
 
   context 'with a custom upstream_binrepo' do

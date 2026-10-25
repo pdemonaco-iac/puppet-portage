@@ -54,6 +54,8 @@ directories. The module does not use `eselect profile` or `eselect repository`.
 * OpenVox 8.x or later (agent and server), with Hiera 5 and eyaml.
 * Gentoo on x86-64. Other architectures are out of scope.
 * Stage3 bootstrap of build chroots is manual or scripted outside this module.
+* Modules: `puppetlabs/stdlib` and `puppetlabs/cron_core` (for the optional
+  `portage::buildhost::publish` cron job).
 
 ## Usage
 

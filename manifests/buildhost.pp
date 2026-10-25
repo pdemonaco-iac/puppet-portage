@@ -16,6 +16,9 @@
 # @param upstream_binrepo
 #   Parameters of the `upstream` portage::binrepo added to every target;
 #   `sync_uri` is required.
+# @param publish
+#   Install the portage-publish script and the served layout
+#   (portage::buildhost::publish) for every target.
 # @param manage_wrapper
 #   Install the target-emerge wrapper.
 # @param wrapper_path
@@ -43,6 +46,7 @@ class portage::buildhost (
     'priority'         => 1,
     'verify_signature' => true,
   },
+  Boolean $publish = true,
   Boolean $manage_wrapper = true,
   Stdlib::Unixpath $wrapper_path = '/usr/local/sbin/target-emerge',
   Stdlib::Unixpath $repos_dir = '/var/db/repos',
@@ -84,6 +88,15 @@ class portage::buildhost (
       group   => 'root',
       mode    => '0755',
       require => File[$pkgdir_root],
+    }
+  }
+
+  if $publish {
+    class { 'portage::buildhost::publish':
+      targets       => $targets.keys,
+      target_emerge => $wrapper_path,
+      repos_dir     => $repos_dir,
+      pkgdir_root   => $pkgdir_root,
     }
   }
 
