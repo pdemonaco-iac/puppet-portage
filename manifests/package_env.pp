@@ -30,11 +30,16 @@ define portage::package_env (
 
   $envs = $entries.values.flatten.unique.map |$name| { Portage::Env["${owner}/${name}"] }
 
-  portage::atomfile { $title:
+  $file = $filename ? {
+    undef   => regsubst($title, '\A[^/]*/', ''),
+    default => $filename,
+  }
+
+  portage::atomfile { "${title}:package.env":
     root         => $root,
     kind         => 'package.env',
     entries      => $entries,
-    filename     => $filename,
+    filename     => $file,
     purge        => $purge,
     purge_ignore => $purge_ignore,
     require      => $envs,

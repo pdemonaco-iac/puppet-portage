@@ -17,11 +17,16 @@ define portage::accept_keywords (
   Boolean $purge = true,
   Array[String[1]] $purge_ignore = [],
 ) {
-  portage::atomfile { $title:
+  $file = $filename ? {
+    undef   => regsubst($title, '\A[^/]*/', ''),
+    default => $filename,
+  }
+
+  portage::atomfile { "${title}:package.accept_keywords":
     root         => $root,
     kind         => 'package.accept_keywords',
     entries      => $entries,
-    filename     => $filename,
+    filename     => $file,
     purge        => $purge,
     purge_ignore => $purge_ignore,
   }

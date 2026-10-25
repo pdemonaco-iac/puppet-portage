@@ -6,7 +6,7 @@ describe 'portage::license' do
   let(:title) { 'host/web' }
   let(:params) { { root: '/', entries: { 'sys-kernel/linux-firmware' => ['linux-fw-redistributable', '@BINARY-REDISTRIBUTABLE'] } } }
 
-  it { is_expected.to contain_portage__atomfile('host/web').with(kind: 'package.license', root: '/') }
+  it { is_expected.to contain_portage__atomfile('host/web:package.license').with(kind: 'package.license', root: '/') }
   it { is_expected.to contain_file('/etc/portage/package.license/web').with_content(%r{^sys-kernel/linux-firmware linux-fw-redistributable @BINARY-REDISTRIBUTABLE$}) }
 
   context 'with a chroot root' do

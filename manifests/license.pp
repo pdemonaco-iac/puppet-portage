@@ -17,11 +17,16 @@ define portage::license (
   Boolean $purge = true,
   Array[String[1]] $purge_ignore = [],
 ) {
-  portage::atomfile { $title:
+  $file = $filename ? {
+    undef   => regsubst($title, '\A[^/]*/', ''),
+    default => $filename,
+  }
+
+  portage::atomfile { "${title}:package.license":
     root         => $root,
     kind         => 'package.license',
     entries      => $entries,
-    filename     => $filename,
+    filename     => $file,
     purge        => $purge,
     purge_ignore => $purge_ignore,
   }

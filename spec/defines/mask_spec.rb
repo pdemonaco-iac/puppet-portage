@@ -6,7 +6,7 @@ describe 'portage::mask' do
   let(:title) { 'host/pins' }
   let(:params) { { root: '/', atoms: ['>=dev-lang/ruby-3.4', 'app-misc/foo'] } }
 
-  it { is_expected.to contain_portage__atomfile('host/pins').with(kind: 'package.mask') }
+  it { is_expected.to contain_portage__atomfile('host/pins:package.mask').with(kind: 'package.mask') }
 
   it do
     is_expected.to contain_file('/etc/portage/package.mask/pins').with_content(<<~CONF)

@@ -10,7 +10,7 @@ describe 'portage::package_env' do
     let(:pre_condition) { "portage::env { 'host/lowmem': root => '/', config => { 'MAKEOPTS' => ['-j1'] } }" }
 
     it { is_expected.to compile.with_all_deps }
-    it { is_expected.to contain_portage__atomfile('host/heavy').with(kind: 'package.env').that_requires('Portage::Env[host/lowmem]') }
+    it { is_expected.to contain_portage__atomfile('host/heavy:package.env').with(kind: 'package.env').that_requires('Portage::Env[host/lowmem]') }
 
     it do
       is_expected.to contain_file('/etc/portage/package.env/heavy').with_content(<<~CONF)

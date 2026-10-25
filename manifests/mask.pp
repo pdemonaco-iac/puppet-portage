@@ -25,11 +25,16 @@ define portage::mask (
     default => 'package.mask',
   }
 
-  portage::atomfile { $title:
+  $file = $filename ? {
+    undef   => regsubst($title, '\A[^/]*/', ''),
+    default => $filename,
+  }
+
+  portage::atomfile { "${title}:${kind}":
     root         => $root,
     kind         => $kind,
     entries      => $atoms.reduce({}) |$memo, $atom| { $memo + { $atom => [] } },
-    filename     => $filename,
+    filename     => $file,
     purge        => $purge,
     purge_ignore => $purge_ignore,
   }

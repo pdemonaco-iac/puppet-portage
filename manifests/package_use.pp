@@ -17,11 +17,16 @@ define portage::package_use (
   Boolean $purge = true,
   Array[String[1]] $purge_ignore = [],
 ) {
-  portage::atomfile { $title:
+  $file = $filename ? {
+    undef   => regsubst($title, '\A[^/]*/', ''),
+    default => $filename,
+  }
+
+  portage::atomfile { "${title}:package.use":
     root         => $root,
     kind         => 'package.use',
     entries      => $entries,
-    filename     => $filename,
+    filename     => $file,
     purge        => $purge,
     purge_ignore => $purge_ignore,
   }

@@ -6,7 +6,7 @@ describe 'portage::package_use' do
   let(:title) { 'host/web' }
   let(:params) { { root: '/', entries: { 'www-servers/nginx' => %w[ssl -debug] } } }
 
-  it { is_expected.to contain_portage__atomfile('host/web').with(kind: 'package.use', root: '/') }
+  it { is_expected.to contain_portage__atomfile('host/web:package.use').with(kind: 'package.use', root: '/') }
   it { is_expected.to contain_file('/etc/portage/package.use/web').with_content(%r{^www-servers/nginx ssl -debug$}) }
 
   context 'with a chroot root' do
