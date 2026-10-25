@@ -19,6 +19,9 @@
 # @param publish
 #   Install the portage-publish script and the served layout
 #   (portage::buildhost::publish) for every target.
+# @param mirror
+#   Serve the published repositories over rsyncd (portage::buildhost::mirror).
+#   With `publish` it serves the same repositories and mirror directory.
 # @param manage_wrapper
 #   Install the target-emerge wrapper.
 # @param wrapper_path
@@ -47,6 +50,7 @@ class portage::buildhost (
     'verify_signature' => true,
   },
   Boolean $publish = true,
+  Boolean $mirror = true,
   Boolean $manage_wrapper = true,
   Stdlib::Unixpath $wrapper_path = '/usr/local/sbin/target-emerge',
   Stdlib::Unixpath $repos_dir = '/var/db/repos',
@@ -97,6 +101,21 @@ class portage::buildhost (
       target_emerge => $wrapper_path,
       repos_dir     => $repos_dir,
       pkgdir_root   => $pkgdir_root,
+    }
+  }
+
+  if $mirror {
+    if $publish {
+      class { 'portage::buildhost::mirror':
+        repos      => $portage::buildhost::publish::repos,
+        mirror_dir => $portage::buildhost::publish::mirror_dir,
+        repos_dir  => $repos_dir,
+        require    => Class['portage::buildhost::publish'],
+      }
+    } else {
+      class { 'portage::buildhost::mirror':
+        repos_dir => $repos_dir,
+      }
     }
   }
 

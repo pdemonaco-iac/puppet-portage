@@ -52,6 +52,8 @@ describe 'portage::buildhost' do
     it { is_expected.to contain_class('portage::buildhost::publish').with_targets(%w[desktop server]) }
     it { is_expected.to contain_file('/usr/local/sbin/portage-publish').with_content(%r{^targets=\(desktop server\)$}) }
     it { is_expected.to contain_file('/srv/binhost/desktop') }
+    it { is_expected.to contain_class('portage::buildhost::mirror').with(repos: ['gentoo'], mirror_dir: '/srv/portage-mirror') }
+    it { is_expected.to contain_service('rsyncd').with(ensure: 'running', enable: true) }
   end
 
   context 'without publish' do
@@ -60,6 +62,15 @@ describe 'portage::buildhost' do
     it { is_expected.to compile.with_all_deps }
     it { is_expected.not_to contain_class('portage::buildhost::publish') }
     it { is_expected.not_to contain_file('/usr/local/sbin/portage-publish') }
+    it { is_expected.to contain_class('portage::buildhost::mirror').with_repos(['gentoo']) }
+  end
+
+  context 'without mirror' do
+    let(:params) { { targets: targets, signing: false, mirror: false } }
+
+    it { is_expected.to compile.with_all_deps }
+    it { is_expected.not_to contain_class('portage::buildhost::mirror') }
+    it { is_expected.not_to contain_service('rsyncd') }
   end
 
   context 'with a custom upstream_binrepo' do
