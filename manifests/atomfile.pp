@@ -20,7 +20,7 @@
 # @api private
 define portage::atomfile (
   Portage::Targetroot $root,
-  Enum['package.use', 'package.accept_keywords', 'package.license', 'package.mask', 'package.unmask'] $kind,
+  Enum['package.use', 'package.accept_keywords', 'package.license', 'package.mask', 'package.unmask', 'package.env'] $kind,
   Hash[Portage::Atom, Array[String[1]]] $entries = {},
   Optional[Pattern[/\A[A-Za-z0-9_][A-Za-z0-9_.+-]*\z/]] $filename = undef,
   Boolean $purge = true,

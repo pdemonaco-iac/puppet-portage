@@ -49,7 +49,7 @@ describe 'portage::atomfile' do
   end
 
   context 'with an invalid kind' do
-    let(:params) { super().merge(kind: 'package.env') }
+    let(:params) { super().merge(kind: 'package.bogus') }
 
     it { is_expected.to compile.and_raise_error(%r{kind}) }
   end

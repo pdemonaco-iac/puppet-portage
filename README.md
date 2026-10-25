@@ -56,13 +56,9 @@ directories. The module does not use `eselect profile` or `eselect repository`.
 
 ## Usage
 
-Consumers (`profile::gentoo::portage`):
-
 ```puppet
 include portage
 ```
-
-Build host (`profile::gentoo::buildhost`):
 
 ```puppet
 include portage::buildhost
