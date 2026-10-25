@@ -68,3 +68,5 @@ lookup_options:
     merge:
       strategy: deep
       knockout_prefix: '--'
+  portage::buildhost::signing::private_key:
+    convert_to: Sensitive
