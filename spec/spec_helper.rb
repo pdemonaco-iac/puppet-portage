@@ -9,7 +9,8 @@ require 'voxpupuli/test/spec_helper'
 RSpec.configure do |c|
   c.facterdb_string_keys = false
   c.strict_variables = true
-  c.before(:each) { Puppet.settings[:strict] = :error }
+  c.default_facts = YAML.safe_load_file(File.join(__dir__, 'default_facts.yml'))
+  c.before { Puppet.settings[:strict] = :error }
 end
 
 add_mocked_facts!
