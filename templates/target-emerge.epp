@@ -1,0 +1,78 @@
+<%- | Stdlib::Unixpath $targets_dir, Stdlib::Unixpath $repos_dir, Stdlib::Unixpath $distfiles_dir, Stdlib::Unixpath $pkgdir_root | -%>
+#!/bin/bash
+# This file is managed by Puppet. Local changes will be overwritten.
+#
+# Usage: target-emerge <target> <emerge arguments>
+#
+# Runs emerge inside the chroot <%= $targets_dir %>/<target> with transient bind
+# mounts: proc, sys, dev, the host's repositories (read-only), the shared
+# distfiles and the target's own PKGDIR. Everything is unmounted on exit.
+set -euo pipefail
+
+targets_dir=<%= stdlib::shell_escape($targets_dir) %>
+repos_dir=<%= stdlib::shell_escape($repos_dir) %>
+distfiles_dir=<%= stdlib::shell_escape($distfiles_dir) %>
+pkgdir_root=<%= stdlib::shell_escape($pkgdir_root) %>
+
+if [[ $# -lt 2 ]]; then
+  echo "usage: ${0##*/} <target> <emerge arguments>" >&2
+  exit 64
+fi
+
+target=$1
+shift
+
+if [[ ! $target =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]*$ ]]; then
+  echo "${0##*/}: invalid target name: ${target}" >&2
+  exit 64
+fi
+
+root="${targets_dir}/${target}"
+pkgdir="${pkgdir_root}/${target}"
+
+if [[ ! -x "${root}/usr/bin/emerge" ]]; then
+  echo "${0##*/}: ${root} is not a bootstrapped Gentoo root" >&2
+  exit 66
+fi
+
+mkdir -p "${pkgdir}" "${distfiles_dir}"
+
+mounted=()
+
+cleanup() {
+  local i
+  for ((i = ${#mounted[@]} - 1; i >= 0; i--)); do
+    umount -R "${mounted[i]}" || echo "${0##*/}: failed to unmount ${mounted[i]}" >&2
+  done
+}
+trap cleanup EXIT
+
+bind() {
+  local source=$1 dest=$2 mode=${3:-rw}
+  if [[ -d $source ]]; then
+    mkdir -p "$dest"
+  else
+    mkdir -p "${dest%/*}"
+    touch "$dest"
+  fi
+  mount --rbind "$source" "$dest"
+  mounted+=("$dest")
+  mount --make-rslave "$dest"
+  if [[ $mode == ro ]]; then
+    mount -o remount,bind,ro "$dest"
+  fi
+}
+
+mount -t proc proc "${root}/proc"
+mounted+=("${root}/proc")
+bind /sys "${root}/sys"
+bind /dev "${root}/dev"
+bind "$repos_dir" "${root}${repos_dir}" ro
+bind "$distfiles_dir" "${root}/var/cache/distfiles"
+bind "$pkgdir" "${root}/var/cache/binpkgs"
+bind /etc/resolv.conf "${root}/etc/resolv.conf" ro
+
+# Not exec'd, so that the EXIT trap unmounts afterwards.
+status=0
+chroot "$root" /usr/bin/emerge "$@" || status=$?
+exit "$status"

@@ -5,13 +5,33 @@
   "license": "Apache-2.0",
   "summary": "Manages the configuration of the portage package manager on Gentoo",
   "source": "https://github.com/pdemonaco-iac/puppet-portage",
-  "dependencies": [],
+  "dependencies": [
+    {
+      "name": "puppetlabs/stdlib",
+      "version_requirement": ">= 9.0.0 < 11.0.0"
+    },
+    {
+      "name": "puppetlabs/cron_core",
+      "version_requirement": ">= 1.0.0 < 3.0.0"
+    },
+    {
+      "name": "puppetlabs/apache",
+      "version_requirement": ">= 12.0.0 < 14.0.0"
+    }
+  ],
   "requirements": [
     {
       "name": "openvox",
-      "version_requirement": ">= 7.0.0 < 9.0.0"
+      "version_requirement": ">= 8.0.0 < 9.0.0"
     }
   ],
-  "operatingsystem_support": [],
+  "operatingsystem_support": [
+    {
+      "operatingsystem": "Gentoo",
+      "operatingsystemrelease": [
+        "rolling"
+      ]
+    }
+  ],
   "tags": []
 }
