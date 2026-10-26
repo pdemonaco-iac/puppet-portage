@@ -53,7 +53,7 @@ pdk-litmus-test spec/acceptance/kea_dhcp_spec.json
 
 ## Architecture
 
-Full design: `portage-module-plan.md` (status: design, not implemented). Read it before adding code.
+Design and usage: `README.md`; per-class and per-type docs: `REFERENCE.md` (Puppet Strings, regenerate with `bundle exec rake strings:generate:reference`). Read them before adding code.
 
 ### Purpose
 

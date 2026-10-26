@@ -3,15 +3,16 @@
 Declarative management of Gentoo Portage configuration with OpenVox, for both
 ordinary Gentoo nodes and a binary package build host.
 
-> **Status:** design phase. See [`portage-module-plan.md`](portage-module-plan.md);
-> most of what is described below is not implemented yet.
+> **Status:** pre-release. Unit-tested; not yet acceptance-tested on real nodes.
 
 ## Table of Contents
 
 1. [Description](#description)
 1. [Setup](#setup)
 1. [Usage](#usage)
+1. [Intermittently connected nodes](#intermittently-connected-nodes)
 1. [Limitations](#limitations)
+1. [Reference](#reference)
 1. [Development](#development)
 
 ## Description
@@ -62,18 +63,113 @@ directories. The module does not use `eselect profile` or `eselect repository`.
 
 ## Usage
 
-```puppet
-include portage
-```
+Wrap the module in two profiles:
 
 ```puppet
-include portage::buildhost
+# Every Gentoo node.
+class profile::gentoo::portage {
+  include portage
+}
+
+# The build host: its own host target plus the build targets. portage::buildhost
+# declares portage::buildhost::signing, ::publish and ::mirror itself.
+class profile::gentoo::buildhost {
+  include profile::gentoo::portage
+  include portage::buildhost
+}
 ```
 
-Both are configured through Hiera, using deep merge with `knockout_prefix: '--'`
-for `portage::*` hashes. Consumers point `repos.conf` at the build host's rsync
-mirror and list the build host first, upstream second, in `binrepos`. Each
-consumer with a distinct USE set needs a matching build host target.
+Everything else is Hiera data. The `portage::*` hashes deep-merge across Hiera
+layers, so common data can set the defaults and a node layer can add to them;
+prefix a key with `--` to remove an entry inherited from a lower layer (for
+example `--guru:` under `portage::repositories`).
+
+### Consumer
+
+Consumers sync from the build host's rsync mirror and list the build host's
+binhost first (higher priority), upstream second. Each consumer with a distinct
+USE set needs a matching build host target; here, `desktop`.
+
+```yaml
+portage::profile:
+  path: default/linux/amd64/23.0/desktop/systemd
+portage::make_conf:
+  MAKEOPTS: ['-j8']
+  FEATURES: [getbinpkg]
+portage::repositories:
+  gentoo:
+    sync_type: rsync
+    sync_uri: rsync://buildhost.example.org/gentoo    # MetaManifest verified by default
+  guru:
+    sync_type: rsync
+    sync_uri: rsync://buildhost.example.org/guru
+    sync_rsync_verify_metamanifest: false            # git-sourced, unsigned
+portage::binrepos:
+  buildhost:
+    sync_uri: https://buildhost.example.org/binhost/desktop
+    priority: 10
+    verify_signature: true
+  upstream:
+    sync_uri: https://distfiles.gentoo.org/releases/amd64/binpackages/23.0/x86-64-v3/
+    priority: 1
+    verify_signature: true
+portage::binhost_keys:
+  buildhost:
+    fingerprint: 0123456789ABCDEF0123456789ABCDEF01234567   # gpg --fingerprint <key-id>
+    public_key: |
+      -----BEGIN PGP PUBLIC KEY BLOCK-----
+      ...
+portage::package_use:
+  media:
+    entries:
+      media-video/ffmpeg: [x264, -doc]
+portage::accept_keywords:
+  editors:
+    entries:
+      app-editors/neovim: ['~amd64']
+```
+
+### Build host
+
+The build host's own host target syncs from upstream; each build target is a
+chroot that mirrors one class of consumer. Put the consumers' USE, keywords and
+profile in the matching target so the binpkgs fit them.
+
+```yaml
+portage::repositories:
+  gentoo:
+    sync_type: rsync
+    sync_uri: rsync://rsync.gentoo.org/gentoo-portage
+  guru:
+    sync_type: git
+    sync_uri: https://github.com/gentoo-mirror/guru.git
+portage::buildhost::targets:
+  desktop:
+    profile:
+      path: default/linux/amd64/23.0/desktop/systemd
+    make_conf:
+      MAKEOPTS: ['-j16']
+    package_use:
+      media:
+        entries:
+          media-video/ffmpeg: [x264, -doc]
+    accept_keywords:
+      editors:
+        entries:
+          app-editors/neovim: ['~amd64']
+portage::buildhost::publish::repos: [gentoo, guru]
+portage::buildhost::publish::cron_schedule:
+  minute: '30'
+  hour: '2'
+portage::buildhost::mirror::hosts_allow: ['192.0.2.0/24']
+```
+
+Targets default to `FEATURES="getbinpkg buildpkg binpkg-signing"` and an
+upstream binrepo with signature verification. `portage-publish` copies the
+repositories to `/srv/portage-mirror/<repo>` (served by rsyncd) and each
+target's binpkgs to `/srv/binhost/<target>`. The module does not serve
+`/srv/binhost`: publish it over HTTPS with the web server of your choice so
+consumers can use it as a `binrepos` `sync_uri`.
 
 ### Bootstrapping a build target
 
@@ -127,7 +223,6 @@ Encrypt the private key with [hiera-eyaml](https://github.com/voxpupuli/hiera-ey
 (`eyaml encrypt -s` or `-f`), then set the data for `portage::buildhost::signing`:
 
 ```yaml
-portage::buildhost::signing::roots: [/var/lib/portage-targets/stage3]
 portage::buildhost::signing::key_id: '0x40DCF18E97150795'
 portage::buildhost::signing::public_key: |
   -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -135,7 +230,8 @@ portage::buildhost::signing::public_key: |
 portage::buildhost::signing::private_key: ENC[PKCS7,...]
 ```
 
-The module converts `private_key` to `Sensitive`, so it never appears in
+`portage::buildhost` sets the signing roots to its targets. The module
+converts `private_key` to `Sensitive`, so it never appears in
 catalogs, reports or logs. Each root gets a `0700` GnuPG home at
 `/etc/portage/binpkg-signing`; `portage::buildhost::signing::make_conf` holds
 the `FEATURES="binpkg-signing"`, `BINPKG_GPG_SIGNING_GPG_HOME` and
@@ -150,6 +246,33 @@ consumers. Supporting documentation:
 * [GnuPG: unattended key generation](https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html)
 * [hiera-eyaml](https://github.com/voxpupuli/hiera-eyaml)
 
+## Intermittently connected nodes
+
+A laptop that is often off the LAN works as an ordinary consumer:
+
+* **Cached catalog.** When the OpenVox server is unreachable, the agent
+  reapplies its cached catalog (`usecacheonfailure`, on by default). That is
+  safe here: the consumer's resources are files and symlinks, and its only
+  execs are the `refreshonly` repository sync and the one-time binhost key
+  import, neither of which fires without a change.
+* **Stale tree off-LAN.** `emaint sync` against the build host fails off-LAN
+  and the local tree stays usable, only stale. Do not switch `sync_uri` with
+  the network: the consumer must only see the published snapshot, which never
+  runs ahead of the build host's binpkgs.
+* **Binhosts off-LAN.** The upstream binrepo (second priority) still provides
+  packages whose USE flags match; the rest compile locally.
+* **Full function off-LAN.** Make the rsync mirror and the binhost reachable
+  over a VPN; this is the preferred option. A reverse proxy such as HAProxy can
+  front the HTTPS binhost (binpkgs are signed; add authentication if needed),
+  but rsync (873/tcp) is not HTTP: HAProxy would need TCP mode for it, or use
+  rsync over SSH instead.
+* **Its own target.** Give the laptop its own build host target if its profile
+  or USE flags differ from the other consumers'. A profile that matches the
+  upstream binhost (for example 23.0 desktop with systemd) raises upstream hits.
+* **Managed machines.** If another organisation manages the machine, check
+  that it permits an OpenVox agent; otherwise configure it by hand as a
+  Portage-only consumer of the mirror and binhost.
+
 ## Limitations
 
 * Gentoo only; x86-64 only.
@@ -158,6 +281,11 @@ consumers. Supporting documentation:
   them over rsync.
 * Off-LAN consumers keep a stale but usable tree; the build host must be
   reachable (for example over VPN) for full function.
+
+## Reference
+
+See [`REFERENCE.md`](REFERENCE.md) for every class, defined type and data type,
+generated with Puppet Strings (`bundle exec rake strings:generate:reference`).
 
 ## Development
 
@@ -169,5 +297,5 @@ jig validate
 jig test unit
 ```
 
-Commits follow conventional commit syntax. The design and the list of items
-still to verify are in [`portage-module-plan.md`](portage-module-plan.md).
+Commits follow conventional commit syntax. Open design questions and
+unverified assumptions are tracked as GitHub issues.
