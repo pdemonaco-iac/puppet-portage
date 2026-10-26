@@ -43,9 +43,9 @@ directories. The module does not use `eselect profile` or `eselect repository`.
 * Files and directories under `/etc/portage` of each target root. Managed
   directories are **purged by default**; `/etc/portage/gnupg` is never purged.
   Run `--noop` before the first apply on an existing node.
-* On the build host: `rsyncd` serving `/srv/portage-mirror/*`, the
-  `target-emerge` chroot wrapper, the `portage-publish` script, and the
-  binpkg signing key.
+* On the build host: `rsyncd` serving `/srv/portage-mirror/*`, an Apache
+  virtual host serving `/srv/binhost`, the `target-emerge` chroot wrapper, the
+  `portage-publish` script, and the binpkg signing key.
 * The `exec`s are: a `refreshonly` `emaint sync -r <name>` for host-rooted
   targets; on the build host, a `gpg --import` of the binpkg signing key that
   runs only while the key is missing from a root's signing GnuPG home; and, for
@@ -58,8 +58,14 @@ directories. The module does not use `eselect profile` or `eselect repository`.
 * OpenVox 8.x or later (agent and server), with Hiera 5 and eyaml.
 * Gentoo on x86-64. Other architectures are out of scope.
 * Stage3 bootstrap of build chroots is manual or scripted outside this module.
-* Modules: `puppetlabs/stdlib` and `puppetlabs/cron_core` (for the optional
-  `portage::buildhost::publish` cron job).
+* Modules: `puppetlabs/stdlib`, `puppetlabs/cron_core` (for the optional
+  `portage::buildhost::publish` cron job) and `puppetlabs/apache` (with its
+  dependencies `puppetlabs/concat` and `puppet/archive`) for the build host's
+  binhost.
+* On Gentoo, `puppetlabs/apache` declares the legacy `gentoo/portage` API
+  `portage::makeconf { 'apache2_mpms': }`. This module provides that define as a
+  shim and writes `APACHE2_MPMS` and `APACHE2_MODULES` into the host's
+  `make.conf`, so do not also install the old `gentoo/portage` module.
 
 ## Usage
 
@@ -106,7 +112,7 @@ portage::repositories:
     sync_rsync_verify_metamanifest: false            # git-sourced, unsigned
 portage::binrepos:
   buildhost:
-    sync_uri: https://buildhost.example.org/binhost/desktop
+    sync_uri: https://buildhost.example.org/desktop
     priority: 10
     verify_signature: true
   upstream:
@@ -162,14 +168,23 @@ portage::buildhost::publish::cron_schedule:
   minute: '30'
   hour: '2'
 portage::buildhost::mirror::hosts_allow: ['192.0.2.0/24']
+portage::buildhost::binhost::ssl: true
+portage::buildhost::binhost::ssl_cert: /etc/ssl/apache2/binhost.crt
+portage::buildhost::binhost::ssl_key: /etc/ssl/apache2/binhost.key
+apache::default_vhost: false
 ```
 
 Targets default to `FEATURES="getbinpkg buildpkg binpkg-signing"` and an
 upstream binrepo with signature verification. `portage-publish` copies the
 repositories to `/srv/portage-mirror/<repo>` (served by rsyncd) and each
-target's binpkgs to `/srv/binhost/<target>`. The module does not serve
-`/srv/binhost`: publish it over HTTPS with the web server of your choice so
-consumers can use it as a `binrepos` `sync_uri`.
+target's binpkgs to `/srv/binhost/<target>`. `portage::buildhost::binhost`
+serves `/srv/binhost` read-only through an `apache::vhost`, so each target is
+at `https://<servername>/<target>/`, the consumers' `binrepos` `sync_uri`. The
+live per-target PKGDIRs are never served. TLS (with an HTTP to HTTPS redirect)
+and HTTP basic authentication (`auth_user_file`, an htpasswd file you manage;
+consumers put the credentials in their `sync_uri`) are optional. Apache itself
+is configured through the `apache` class in Hiera; set
+`portage::buildhost::binhost::manage_apache: false` if you declare it elsewhere.
 
 ### Bootstrapping a build target
 

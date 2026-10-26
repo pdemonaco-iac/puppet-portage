@@ -8,6 +8,7 @@
 
 * [`portage`](#portage): Manages the host's Portage configuration as the `host` portage::target.
 * [`portage::buildhost`](#portage--buildhost): Manages the build host: one portage::target per chroot, the signing key and target-emerge.
+* [`portage::buildhost::binhost`](#portage--buildhost--binhost): Serves the published binary packages to consumers over HTTP(S) with Apache.
 * [`portage::buildhost::mirror`](#portage--buildhost--mirror): Serves the published repository snapshot over rsyncd.
 * [`portage::buildhost::publish`](#portage--buildhost--publish): Installs the portage-publish script, the served layout and an optional cron job.
 * [`portage::buildhost::signing`](#portage--buildhost--signing): Installs the binpkg signing key into each build target root.
@@ -22,6 +23,7 @@
 * [`portage::binrepos_default`](#portage--binrepos_default): Manages binrepos.conf/DEFAULT.conf, the [DEFAULT] section, of a target.
 * [`portage::env`](#portage--env): Manages one file in /etc/portage/env/ of a target.
 * [`portage::license`](#portage--license): Manages one file in /etc/portage/package.license/ of a target.
+* [`portage::makeconf`](#portage--makeconf): Compatibility shim for the legacy gentoo/portage `portage::makeconf` API.
 * [`portage::mask`](#portage--mask): Manages one file in /etc/portage/package.mask/ or package.unmask/ of a target.
 * [`portage::package_env`](#portage--package_env): Manages one file in /etc/portage/package.env/ of a target.
 * [`portage::package_use`](#portage--package_use): Manages one file in /etc/portage/package.use/ of a target.
@@ -36,7 +38,7 @@
 #### Private Defined types
 
 * `portage::atomfile`: Private: one file of atoms in a managed /etc/portage/<kind>/ directory.
-* `portage::makeconf`: Private: renders a target's make.conf from a single hash.
+* `portage::makeconf_file`: Private: renders a target's make.conf from a single hash.
 * `portage::managed_dir`: Private: a directory under /etc/portage whose unmanaged content is purged by default.
 
 ### Data types
@@ -287,6 +289,7 @@ The following parameters are available in the `portage::buildhost` class:
 * [`upstream_binrepo`](#-portage--buildhost--upstream_binrepo)
 * [`publish`](#-portage--buildhost--publish)
 * [`mirror`](#-portage--buildhost--mirror)
+* [`binhost`](#-portage--buildhost--binhost)
 * [`manage_wrapper`](#-portage--buildhost--manage_wrapper)
 * [`wrapper_path`](#-portage--buildhost--wrapper_path)
 * [`repos_dir`](#-portage--buildhost--repos_dir)
@@ -346,6 +349,15 @@ With `publish` it serves the same repositories and mirror directory.
 
 Default value: `true`
 
+##### <a name="-portage--buildhost--binhost"></a>`binhost`
+
+Data type: `Boolean`
+
+Serve the published binary packages over HTTP(S) (portage::buildhost::binhost).
+With `publish` it serves publish's `binhost_dir`.
+
+Default value: `true`
+
 ##### <a name="-portage--buildhost--manage_wrapper"></a>`manage_wrapper`
 
 Data type: `Boolean`
@@ -386,6 +398,129 @@ Directory holding one PKGDIR per target, bind-mounted at /var/cache/binpkgs
 in the chroot.
 
 Default value: `'/var/cache/portage-targets'`
+
+### <a name="portage--buildhost--binhost"></a>`portage::buildhost::binhost`
+
+One apache::vhost serves `binhost_dir` read-only, so each target's packages
+are at `<scheme>://<servername>/<target>/`, the `sync_uri` of a consumer's
+binrepo. Only the published copy is served: the live per-target PKGDIRs
+under `pkgdir_root` are never exposed, and `binhost_dir` may not overlap
+them. Apache itself is configured through the `apache` class (Hiera
+`apache::*`); set `manage_apache` to false to declare it elsewhere.
+
+#### Parameters
+
+The following parameters are available in the `portage::buildhost::binhost` class:
+
+* [`binhost_dir`](#-portage--buildhost--binhost--binhost_dir)
+* [`pkgdir_root`](#-portage--buildhost--binhost--pkgdir_root)
+* [`servername`](#-portage--buildhost--binhost--servername)
+* [`ssl`](#-portage--buildhost--binhost--ssl)
+* [`ssl_cert`](#-portage--buildhost--binhost--ssl_cert)
+* [`ssl_key`](#-portage--buildhost--binhost--ssl_key)
+* [`ssl_chain`](#-portage--buildhost--binhost--ssl_chain)
+* [`redirect_http`](#-portage--buildhost--binhost--redirect_http)
+* [`port`](#-portage--buildhost--binhost--port)
+* [`auth_user_file`](#-portage--buildhost--binhost--auth_user_file)
+* [`auth_name`](#-portage--buildhost--binhost--auth_name)
+* [`manage_apache`](#-portage--buildhost--binhost--manage_apache)
+
+##### <a name="-portage--buildhost--binhost--binhost_dir"></a>`binhost_dir`
+
+Data type: `Stdlib::Unixpath`
+
+Published binhost directory, one subdirectory per target.
+
+Default value: `'/srv/binhost'`
+
+##### <a name="-portage--buildhost--binhost--pkgdir_root"></a>`pkgdir_root`
+
+Data type: `Stdlib::Unixpath`
+
+Directory holding the live per-target PKGDIRs, which must never be served.
+
+Default value: `'/var/cache/portage-targets'`
+
+##### <a name="-portage--buildhost--binhost--servername"></a>`servername`
+
+Data type: `Stdlib::Fqdn`
+
+Virtual host name consumers use in their binrepo `sync_uri`.
+
+Default value: `$facts['networking']['fqdn']`
+
+##### <a name="-portage--buildhost--binhost--ssl"></a>`ssl`
+
+Data type: `Boolean`
+
+Serve over HTTPS with `ssl_cert` and `ssl_key`.
+
+Default value: `false`
+
+##### <a name="-portage--buildhost--binhost--ssl_cert"></a>`ssl_cert`
+
+Data type: `Optional[Stdlib::Unixpath]`
+
+TLS certificate; required when `ssl` is true.
+
+Default value: `undef`
+
+##### <a name="-portage--buildhost--binhost--ssl_key"></a>`ssl_key`
+
+Data type: `Optional[Stdlib::Unixpath]`
+
+TLS private key; required when `ssl` is true.
+
+Default value: `undef`
+
+##### <a name="-portage--buildhost--binhost--ssl_chain"></a>`ssl_chain`
+
+Data type: `Optional[Stdlib::Unixpath]`
+
+Optional TLS certificate chain.
+
+Default value: `undef`
+
+##### <a name="-portage--buildhost--binhost--redirect_http"></a>`redirect_http`
+
+Data type: `Boolean`
+
+With `ssl`, add a port 80 vhost that redirects to HTTPS.
+
+Default value: `true`
+
+##### <a name="-portage--buildhost--binhost--port"></a>`port`
+
+Data type: `Optional[Stdlib::Port]`
+
+Port of the binhost vhost; defaults to 443 with `ssl`, 80 otherwise.
+
+Default value: `undef`
+
+##### <a name="-portage--buildhost--binhost--auth_user_file"></a>`auth_user_file`
+
+Data type: `Optional[Stdlib::Unixpath]`
+
+htpasswd file enabling HTTP basic authentication; the file itself is not
+managed. Consumers put the credentials in their binrepo `sync_uri`.
+
+Default value: `undef`
+
+##### <a name="-portage--buildhost--binhost--auth_name"></a>`auth_name`
+
+Data type: `String[1]`
+
+Basic authentication realm.
+
+Default value: `'Portage binhost'`
+
+##### <a name="-portage--buildhost--binhost--manage_apache"></a>`manage_apache`
+
+Data type: `Boolean`
+
+Include the `apache` class.
+
+Default value: `true`
 
 ### <a name="portage--buildhost--mirror"></a>`portage::buildhost::mirror`
 
@@ -1126,6 +1261,48 @@ Data type: `Array[String[1]]`
 File name patterns exempt from purging.
 
 Default value: `[]`
+
+### <a name="portage--makeconf"></a>`portage::makeconf`
+
+puppetlabs-apache declares `portage::makeconf { 'apache2_mpms': }` and
+`{ 'apache2_modules': }` on Gentoo. This define accepts those declarations
+and the host target writes them to /etc/portage/make.conf as APACHE2_MPMS
+and APACHE2_MODULES. It declares nothing itself, and only the variables
+listed below are accepted, so nothing is silently dropped. Prefer
+`portage::make_conf` for your own variables.
+
+The values are read when the host portage::target is evaluated, so declare
+the shim from a class (as apache does), not from inside a defined type.
+
+#### Parameters
+
+The following parameters are available in the `portage::makeconf` defined type:
+
+* [`content`](#-portage--makeconf--content)
+* [`ensure`](#-portage--makeconf--ensure)
+* [`variable`](#-portage--makeconf--variable)
+
+##### <a name="-portage--makeconf--content"></a>`content`
+
+Data type: `Variant[String, Array[String]]`
+
+Value of the variable; arrays are space-joined.
+
+##### <a name="-portage--makeconf--ensure"></a>`ensure`
+
+Data type: `Enum['present', 'absent']`
+
+`absent` leaves the variable out of make.conf.
+
+Default value: `'present'`
+
+##### <a name="-portage--makeconf--variable"></a>`variable`
+
+Data type: `Enum['apache2_modules', 'apache2_mpms']`
+
+Lowercase variable name; the title.
+
+Default value: `$title`
 
 ### <a name="portage--mask"></a>`portage::mask`
 
@@ -2161,7 +2338,8 @@ Config root: `/` for the host, `/var/lib/portage-targets/<name>` for a chroot.
 
 Data type: `Portage::Makeconfig`
 
-make.conf variables; make.conf is only managed when this is non-empty.
+make.conf variables; make.conf is only managed when this is non-empty or,
+for the host, when the legacy portage::makeconf shim (apache) is used.
 
 Default value: `{}`
 

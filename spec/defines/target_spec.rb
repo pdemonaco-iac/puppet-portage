@@ -41,7 +41,7 @@ describe 'portage::target' do
     end
 
     it { is_expected.to compile.with_all_deps }
-    it { is_expected.to contain_portage__makeconf('host/make.conf').with_root('/') }
+    it { is_expected.to contain_portage__makeconf_file('host/make.conf').with_root('/') }
     it { is_expected.to contain_file('/etc/portage/make.conf') }
     it { is_expected.to contain_portage__repos_default('host/repos_default').with_root('/') }
     it { is_expected.to contain_portage__repository('host/gentoo').with(root: '/', purge: true, purge_ignore: []) }
@@ -84,6 +84,35 @@ describe 'portage::target' do
 
     %w[package.use package.accept_keywords package.license package.mask package.unmask package.env].each do |kind|
       it { is_expected.to contain_file("/etc/portage/#{kind}/local") }
+    end
+  end
+
+  context 'with the legacy makeconf shim declared (as puppetlabs-apache does)' do
+    let(:pre_condition) do
+      <<~PP
+        portage::makeconf { 'apache2_mpms': content => 'prefork' }
+        portage::makeconf { 'apache2_modules': content => ['alias', 'authz_core'] }
+      PP
+    end
+
+    it { is_expected.to compile.with_all_deps }
+
+    it 'writes the variables to the host make.conf even without make_conf' do
+      is_expected.to contain_portage__makeconf_file('host/make.conf').with(config: {}, extra: { 'APACHE2_MPMS' => 'prefork', 'APACHE2_MODULES' => 'alias authz_core' })
+      is_expected.to contain_file('/etc/portage/make.conf').with_content(%r{^APACHE2_MPMS="prefork"$}).with_content(%r{^APACHE2_MODULES="alias authz_core"$})
+    end
+
+    context 'with ensure absent' do
+      let(:pre_condition) { "portage::makeconf { 'apache2_mpms': content => 'prefork', ensure => absent }" }
+
+      it { is_expected.not_to contain_file('/etc/portage/make.conf') }
+    end
+
+    context 'in a chroot target' do
+      let(:title) { 'stage3' }
+      let(:params) { { root: '/var/lib/portage-targets/stage3' } }
+
+      it { is_expected.not_to contain_file('/var/lib/portage-targets/stage3/etc/portage/make.conf') }
     end
   end
 

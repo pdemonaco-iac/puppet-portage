@@ -1,7 +1,10 @@
-<%- | Portage::Makeconfig $config | -%>
+<%- | Portage::Makeconfig $config, Hash[String[1], String] $extra = {} | -%>
 # This file is managed by Puppet. Local changes will be overwritten.
 <% $config.keys.sort.each |$key| { -%>
 <%   $separator = $key ? { 'USE_ORDER' => ':', default => ' ' } -%>
 <%   $value = $config[$key] ? { Array => join($config[$key], $separator), default => String($config[$key]) } -%>
 <%= $key %>="<%= regsubst($value, '"', '\\"', 'G') %>"
+<% } -%>
+<% $extra.keys.sort.each |$key| { -%>
+<%= $key %>="<%= regsubst($extra[$key], '"', '\\"', 'G') %>"
 <% } -%>

@@ -8,6 +8,7 @@ describe 'portage::buildhost' do
     {
       os: { name: 'Gentoo', family: 'Gentoo', architecture: 'amd64', hardware: 'x86_64', release: { full: 'rolling', major: 'rolling' } },
       kernel: 'Linux',
+      networking: { fqdn: 'buildhost.example.org', hostname: 'buildhost', domain: 'example.org', ip: '192.0.2.10' },
     }
   end
   let(:targets) do
@@ -54,6 +55,8 @@ describe 'portage::buildhost' do
     it { is_expected.to contain_file('/srv/binhost/desktop') }
     it { is_expected.to contain_class('portage::buildhost::mirror').with(repos: ['gentoo'], mirror_dir: '/srv/portage-mirror') }
     it { is_expected.to contain_service('rsyncd').with(ensure: 'running', enable: true) }
+    it { is_expected.to contain_class('portage::buildhost::binhost').with(binhost_dir: '/srv/binhost', pkgdir_root: '/var/cache/portage-targets') }
+    it { is_expected.to contain_apache__vhost('portage-binhost-80').with_docroot('/srv/binhost') }
   end
 
   context 'without publish' do
@@ -63,6 +66,14 @@ describe 'portage::buildhost' do
     it { is_expected.not_to contain_class('portage::buildhost::publish') }
     it { is_expected.not_to contain_file('/usr/local/sbin/portage-publish') }
     it { is_expected.to contain_class('portage::buildhost::mirror').with_repos(['gentoo']) }
+  end
+
+  context 'without binhost' do
+    let(:params) { { targets: targets, signing: false, binhost: false } }
+
+    it { is_expected.to compile.with_all_deps }
+    it { is_expected.not_to contain_class('portage::buildhost::binhost') }
+    it { is_expected.not_to contain_class('apache') }
   end
 
   context 'without mirror' do

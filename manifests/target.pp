@@ -9,7 +9,8 @@
 # @param root
 #   Config root: `/` for the host, `/var/lib/portage-targets/<name>` for a chroot.
 # @param make_conf
-#   make.conf variables; make.conf is only managed when this is non-empty.
+#   make.conf variables; make.conf is only managed when this is non-empty or,
+#   for the host, when the legacy portage::makeconf shim (apache) is used.
 # @param repos_default
 #   Parameters of portage::repos_default (the repos.conf [DEFAULT] section).
 # @param repositories
@@ -82,10 +83,23 @@ define portage::target (
     mode   => '0755',
   }
 
-  unless $make_conf.empty {
-    portage::makeconf { "${title}/make.conf":
+  # Variables declared through the legacy portage::makeconf shim (by
+  # puppetlabs-apache) belong to the host's make.conf.
+  $legacy = $root ? {
+    '/'     => ['apache2_modules', 'apache2_mpms'].filter |$name| {
+      defined(Portage::Makeconf[$name]) and Portage::Makeconf[$name]['ensure'] != 'absent'
+    },
+    default => [],
+  }
+  $extra = $legacy.reduce({}) |$memo, $name| {
+    $memo + { $name.upcase => [Portage::Makeconf[$name]['content']].flatten.join(' ') }
+  }
+
+  unless $make_conf.empty and $extra.empty {
+    portage::makeconf_file { "${title}/make.conf":
       root   => $root,
       config => $make_conf,
+      extra  => $extra,
     }
   }
 

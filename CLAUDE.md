@@ -62,8 +62,8 @@ Declaratively manage Gentoo Portage configuration on consumer nodes and on a bui
 ### Module Structure
 
 - Everything is keyed off a config root. `portage::target` (defined type) owns one root: host is `root => '/'`, chroots are `/var/lib/portage-targets/<name>`. Inner resource titles are `"${target}/${key}"`.
-- `class portage` -> host target from Hiera. `class portage::buildhost` -> `targets` hash, one target per chroot (plus `buildhost::mirror`, `::publish`, `::signing`). Both take the same parameter schema.
-- Per-resource defined types: `repository`, `profile`, `binrepo`, `binhost_key`, `set`, `package_use`, `accept_keywords`, `license`, `mask`, `package_env`, `env`, `patch`, `postsync`. `makeconf` renders `make.conf` from one hash via EPP; `atomfile` is the private generic.
+- `class portage` -> host target from Hiera. `class portage::buildhost` -> `targets` hash, one target per chroot (plus `buildhost::mirror`, `::publish`, `::signing`, `::binhost`). Both take the same parameter schema.
+- Per-resource defined types: `repository`, `profile`, `binrepo`, `binhost_key`, `set`, `package_use`, `accept_keywords`, `license`, `mask`, `package_env`, `env`, `patch`, `postsync`. `makeconf_file` (private) renders `make.conf` from one hash via EPP; `makeconf` is a public shim for the legacy gentoo/portage API that puppetlabs-apache calls on Gentoo (APACHE2_* into the host make.conf); `atomfile` is the private generic.
 - Type aliases validate atoms, USE flags, keywords; reject `-march=native` in non-host targets.
 
 ### Conventions
@@ -77,4 +77,4 @@ Declaratively manage Gentoo Portage configuration on consumer nodes and on a bui
 ### Platform Support
 
 - Gentoo only, x86-64 only. OpenVox 8.x+.
-- Code must be clean under OpenVox 8 defaults: `strict = error`, `strict_variables = true`, structured facts only (`$facts['os']['family']`), typed parameters, `stdlib::` namespaced functions, no `puppetlabs-concat`, Ruby 3.2+ for custom facts/functions.
+- Code must be clean under OpenVox 8 defaults: `strict = error`, `strict_variables = true`, structured facts only (`$facts['os']['family']`), typed parameters, `stdlib::` namespaced functions, no `puppetlabs-concat` in this module's code (it is present only as a transitive dependency of `puppetlabs-apache`), Ruby 3.2+ for custom facts/functions.
