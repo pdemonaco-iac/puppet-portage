@@ -1,0 +1,66 @@
+<%- | Array[String[1]] $targets, Array[String[1]] $repos, Array[String[1]] $emerge_args,
+      Stdlib::Unixpath $target_emerge, Stdlib::Unixpath $repos_dir, Stdlib::Unixpath $mirror_dir,
+      Stdlib::Unixpath $pkgdir_root, Stdlib::Unixpath $binhost_dir, Stdlib::Unixpath $lock_file | -%>
+<%- $targets_list = $targets.map |$value| { stdlib::shell_escape($value) }.join(' ') -%>
+<%- $repos_list = $repos.map |$value| { stdlib::shell_escape($value) }.join(' ') -%>
+<%- $emerge_list = $emerge_args.map |$value| { stdlib::shell_escape($value) }.join(' ') -%>
+#!/bin/bash
+# This file is managed by Puppet. Local changes will be overwritten.
+#
+# Usage: portage-publish
+#
+# 1. Sync the host's repositories from upstream.
+# 2. Build @world in each target, one after the other.
+# 3. Only if every build succeeded, publish: rsync the repositories to the
+#    mirror and each target's binary packages to the binhost, then rebuild the
+#    binhost indexes.
+#
+# The repositories are published exactly as synced. Do not regenerate
+# metadata here: the published tree must stay byte-identical to what the
+# signed MetaManifest covers.
+set -euo pipefail
+
+targets=(<%= $targets_list %>)
+repos=(<%= $repos_list %>)
+emerge_args=(<%= $emerge_list %>)
+target_emerge=<%= stdlib::shell_escape($target_emerge) %>
+repos_dir=<%= stdlib::shell_escape($repos_dir) %>
+mirror_dir=<%= stdlib::shell_escape($mirror_dir) %>
+pkgdir_root=<%= stdlib::shell_escape($pkgdir_root) %>
+binhost_dir=<%= stdlib::shell_escape($binhost_dir) %>
+lock_file=<%= stdlib::shell_escape($lock_file) %>
+
+log() {
+  printf '%s portage-publish: %s\n' "$(date -Is)" "$*"
+}
+
+exec 9>"$lock_file"
+if ! flock -n 9; then
+  log "another run holds ${lock_file}" >&2
+  exit 75
+fi
+
+log "syncing repositories"
+emaint sync --auto
+
+# Sequential on purpose: one target at a time keeps the build host's CPU,
+# memory and disk from being exhausted.
+for target in "${targets[@]}"; do
+  log "building ${emerge_args[*]} in ${target}"
+  "$target_emerge" "$target" "${emerge_args[@]}"
+done
+
+log "all builds succeeded, publishing"
+
+for repo in "${repos[@]}"; do
+  log "publishing repository ${repo}"
+  rsync --archive --delete --delay-updates "${repos_dir}/${repo}/" "${mirror_dir}/${repo}/"
+done
+
+for target in "${targets[@]}"; do
+  log "publishing binary packages of ${target}"
+  rsync --archive --delete --delay-updates "${pkgdir_root}/${target}/" "${binhost_dir}/${target}/"
+  PKGDIR="${binhost_dir}/${target}" emaint binhost --fix
+done
+
+log "done"

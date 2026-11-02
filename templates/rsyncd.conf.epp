@@ -1,0 +1,29 @@
+<%- | Stdlib::Unixpath $pid_file, Integer[0] $max_connections, Boolean $use_chroot, String[1] $uid, String[1] $gid,
+      Optional[Stdlib::Unixpath] $motd_file, Array[String[1]] $hosts_allow, Array[String[1]] $exclude,
+      Hash[String[1], Struct[{ 'path' => Stdlib::Unixpath, 'comment' => String[1] }]] $modules | -%>
+# This file is managed by Puppet. Local changes will be overwritten.
+pid file = <%= $pid_file %>
+max connections = <%= $max_connections %>
+use chroot = <%= $use_chroot ? { true => 'yes', default => 'no' } %>
+uid = <%= $uid %>
+gid = <%= $gid %>
+read only = yes
+write only = no
+list = yes
+<% if $motd_file { -%>
+motd file = <%= $motd_file %>
+<% } -%>
+<% unless $hosts_allow.empty { -%>
+hosts allow = <%= $hosts_allow.join(' ') %>
+hosts deny = *
+<% } -%>
+<% $modules.keys.sort.each |$name| { -%>
+
+[<%= $name %>]
+path = <%= $modules[$name]['path'] %>
+comment = <%= $modules[$name]['comment'] %>
+read only = yes
+<%   unless $exclude.empty { -%>
+exclude = <%= $exclude.join(' ') %>
+<%   } -%>
+<% } -%>

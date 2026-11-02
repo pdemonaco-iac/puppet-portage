@@ -1,0 +1,7 @@
+<%- | String[1] $section, Hash[String[1], Variant[String, Numeric, Boolean, Array[String]]] $attributes | -%>
+# This file is managed by Puppet. Local changes will be overwritten.
+[<%= $section %>]
+<% $attributes.each |$key, $value| { -%>
+<%   $rendered = $value ? { Boolean => $value ? { true => 'yes', default => 'no' }, Array => join($value, ' '), default => String($value) } -%>
+<%= $key %> = <%= $rendered %>
+<% } -%>

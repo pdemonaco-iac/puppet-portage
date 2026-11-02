@@ -1,0 +1,12 @@
+---
+portage::buildhost::signing::private_key: |
+  -----BEGIN PGP PRIVATE KEY BLOCK-----
+
+  secretsecret
+  -----END PGP PRIVATE KEY BLOCK-----
+portage::buildhost::signing::public_key: |
+  -----BEGIN PGP PUBLIC KEY BLOCK-----
+
+  publicpublic
+  -----END PGP PUBLIC KEY BLOCK-----
+portage::buildhost::signing::key_id: '0x40DCF18E97150795'

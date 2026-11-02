@@ -1,0 +1,61 @@
+# frozen_string_literal: true
+
+require 'spec_helper'
+
+describe 'portage::postsync' do
+  let(:title) { 'host/10-notify' }
+  let(:params) { { root: '/', content: "#!/bin/sh\necho synced\n" } }
+
+  it { is_expected.to contain_file('/etc/portage/postsync.d').with(ensure: 'directory', recurse: true, purge: true) }
+  it { is_expected.to contain_file('/etc/portage/postsync.d/10-notify').with(ensure: 'file', mode: '0755', content: "#!/bin/sh\necho synced\n") }
+
+  context 'with per_repo' do
+    let(:params) { super().merge(per_repo: true) }
+
+    it { is_expected.to contain_file('/etc/portage/repo.postsync.d').with(ensure: 'directory', purge: true) }
+    it { is_expected.to contain_portage__managed_dir('/etc/portage/repo.postsync.d') }
+    it { is_expected.to contain_file('/etc/portage/repo.postsync.d/10-notify').with_mode('0755') }
+    it { is_expected.not_to contain_file('/etc/portage/postsync.d/10-notify') }
+  end
+
+  context 'with a chroot root, purge disabled and purge_ignore' do
+    let(:params) { super().merge(root: '/var/lib/portage-targets/stage3', purge: false, purge_ignore: ['local-*']) }
+
+    it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/postsync.d').with(recurse: false, purge: false, ignore: ['local-*']) }
+    it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/postsync.d/10-notify') }
+    it { is_expected.to contain_portage__managed_dir('/var/lib/portage-targets/stage3/etc/portage/postsync.d').with(purge: false, purge_ignore: ['local-*']) }
+  end
+
+  context 'with two hooks in one target' do
+    let(:pre_condition) { "portage::postsync { 'host/20-other': root => '/', content => '#!/bin/sh' }" }
+
+    it { is_expected.to compile.with_all_deps }
+    it { is_expected.to contain_portage__managed_dir('/etc/portage/postsync.d') }
+    it { is_expected.to contain_file('/etc/portage/postsync.d/10-notify').with(ensure: 'file', mode: '0755') }
+    it { is_expected.to contain_file('/etc/portage/postsync.d/20-other').with(ensure: 'file', mode: '0755', content: '#!/bin/sh') }
+  end
+
+  context 'with source instead of content' do
+    let(:params) { { root: '/', source: 'puppet:///modules/profile/eix-postsync' } }
+
+    it { is_expected.to contain_file('/etc/portage/postsync.d/10-notify').with(ensure: 'file', mode: '0755', source: 'puppet:///modules/profile/eix-postsync', content: nil) }
+  end
+
+  context 'with both content and source' do
+    let(:params) { super().merge(source: 'puppet:///modules/profile/eix-postsync') }
+
+    it { is_expected.to compile.and_raise_error(%r{exactly one of content and source}) }
+  end
+
+  context 'with neither content nor source' do
+    let(:params) { { root: '/' } }
+
+    it { is_expected.to compile.and_raise_error(%r{exactly one of content and source}) }
+  end
+
+  context 'with an invalid filename' do
+    let(:params) { super().merge(filename: '../evil') }
+
+    it { is_expected.to compile.and_raise_error(%r{filename}) }
+  end
+end
