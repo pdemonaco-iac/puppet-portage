@@ -80,6 +80,43 @@ describe 'portage::makeconf_file' do
     it { is_expected.to contain_file('/etc/portage/make.conf').with_content(%r{^PKGDIR="/var/cache/binpkgs"$}) }
   end
 
+  context 'with USE_EXPAND, COMMON_FLAGS and NINJAJOBS' do
+    let(:config) do
+      {
+        'COMMON_FLAGS' => ['-O2', '-pipe'],
+        'CFLAGS' => ['${COMMON_FLAGS}'],
+        'CPU_FLAGS_X86' => %w[aes avx2 sse4_1],
+        'GRUB_PLATFORMS' => ['efi-64'],
+        'VIDEO_CARDS' => ['-*', 'amdgpu', 'radeonsi'],
+        'NINJAJOBS' => 9,
+      }
+    end
+
+    it { is_expected.to contain_file('/etc/portage/make.conf').with_content(%r{^COMMON_FLAGS="-O2 -pipe"$}) }
+    it { is_expected.to contain_file('/etc/portage/make.conf').with_content(%r{^CPU_FLAGS_X86="aes avx2 sse4_1"$}) }
+    it { is_expected.to contain_file('/etc/portage/make.conf').with_content(%r{^GRUB_PLATFORMS="efi-64"$}) }
+    it { is_expected.to contain_file('/etc/portage/make.conf').with_content(%r{^VIDEO_CARDS="-\* amdgpu radeonsi"$}) }
+    it { is_expected.to contain_file('/etc/portage/make.conf').with_content(%r{^NINJAJOBS="9"$}) }
+  end
+
+  context 'with -march=native in COMMON_FLAGS for a chroot' do
+    let(:params) { { root: '/var/lib/portage-targets/stage3', config: { 'COMMON_FLAGS' => ['-march=native'] } } }
+
+    it { is_expected.to compile.and_raise_error(%r{COMMON_FLAGS sets -march=native}) }
+  end
+
+  context 'with an invalid USE_EXPAND value' do
+    let(:config) { { 'VIDEO_CARDS' => ['amd gpu'] } }
+
+    it { is_expected.to compile.and_raise_error(%r{VIDEO_CARDS}) }
+  end
+
+  context 'with APACHE2_MODULES' do
+    let(:config) { { 'APACHE2_MODULES' => ['ssl'] } }
+
+    it { is_expected.to compile.and_raise_error(%r{APACHE2_MODULES}) }
+  end
+
   context 'with a relative path' do
     let(:config) { { 'PKGDIR' => 'binpkgs' } }
 

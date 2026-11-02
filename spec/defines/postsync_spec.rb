@@ -35,6 +35,24 @@ describe 'portage::postsync' do
     it { is_expected.to contain_file('/etc/portage/postsync.d/20-other').with(ensure: 'file', mode: '0755', content: '#!/bin/sh') }
   end
 
+  context 'with source instead of content' do
+    let(:params) { { root: '/', source: 'puppet:///modules/profile/eix-postsync' } }
+
+    it { is_expected.to contain_file('/etc/portage/postsync.d/10-notify').with(ensure: 'file', mode: '0755', source: 'puppet:///modules/profile/eix-postsync', content: nil) }
+  end
+
+  context 'with both content and source' do
+    let(:params) { super().merge(source: 'puppet:///modules/profile/eix-postsync') }
+
+    it { is_expected.to compile.and_raise_error(%r{exactly one of content and source}) }
+  end
+
+  context 'with neither content nor source' do
+    let(:params) { { root: '/' } }
+
+    it { is_expected.to compile.and_raise_error(%r{exactly one of content and source}) }
+  end
+
   context 'with an invalid filename' do
     let(:params) { super().merge(filename: '../evil') }
 

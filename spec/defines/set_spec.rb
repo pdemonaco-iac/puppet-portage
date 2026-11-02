@@ -49,6 +49,18 @@ describe 'portage::set' do
     it { is_expected.to contain_file('/etc/portage/sets/other').with(ensure: 'file', mode: '0644').with_content(%r{^app-misc/foo$}) }
   end
 
+  context 'with a wildcard atom' do
+    let(:params) { super().merge(atoms: ['dev-haskell/*']) }
+
+    it { is_expected.to compile.and_raise_error(%r{wildcard atom}) }
+  end
+
+  context 'with a versioned glob atom' do
+    let(:params) { super().merge(atoms: ['=dev-libs/foo-1.2*']) }
+
+    it { is_expected.to compile.with_all_deps }
+  end
+
   context 'with an invalid atom' do
     let(:params) { super().merge(atoms: ['garbage']) }
 

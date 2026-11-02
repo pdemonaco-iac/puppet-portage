@@ -21,6 +21,12 @@ define portage::set (
   Boolean $purge = true,
   Array[String[1]] $purge_ignore = [],
 ) {
+  $atoms.each |$atom| {
+    if $atom =~ /\A[^:=<>~]*\*/ {
+      fail("portage::set[${title}]: ${atom} is a wildcard atom, which package sets do not accept")
+    }
+  }
+
   $prefix = $root ? {
     '/'     => '',
     default => $root,

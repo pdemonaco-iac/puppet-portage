@@ -37,6 +37,7 @@ describe 'portage::target' do
         sets: { 'tools' => { 'atoms' => ['app-editors/vim'], 'world' => true } },
         patches: { 'vim-fix' => { 'package' => 'app-editors/vim', 'content' => "--- a\n+++ b\n", 'filename' => 'fix.patch' } },
         postsync: { '10-notify' => { 'content' => "#!/bin/sh\n" } },
+        conf_update_hooks: { 'etckeeper' => { 'content' => "#!/bin/sh\n" } },
       }
     end
 
@@ -60,6 +61,8 @@ describe 'portage::target' do
     it { is_expected.to contain_portage__set('host/tools') }
     it { is_expected.to contain_portage__patch('host/vim-fix') }
     it { is_expected.to contain_portage__postsync('host/10-notify') }
+    it { is_expected.to contain_portage__conf_update_hook('host/etckeeper').with(root: '/', purge: true, purge_ignore: []) }
+    it { is_expected.to contain_file('/etc/portage/conf-update.d/etckeeper').with(ensure: 'file', mode: '0755') }
     it { is_expected.to contain_file('/etc/portage/package.unmask/unpins') }
     it { is_expected.to contain_file('/etc/portage/package.mask/pins') }
     it { is_expected.to contain_file('/etc/portage/package.accept_keywords/keywords').with_content(%r{^dev-lang/rust ~amd64$}) }

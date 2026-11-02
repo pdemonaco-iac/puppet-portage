@@ -33,8 +33,8 @@ same parameter schema.
 
 Managed per target: `make.conf` (rendered from a single hash), the
 `make.profile` symlink (relative, so it is valid inside a chroot), `repos.conf`,
-`binrepos.conf`, and the `package.*`, `env`, `sets`, `patches` and `postsync.d`
-directories. The module does not use `eselect profile` or `eselect repository`.
+`binrepos.conf`, and the `package.*`, `env`, `sets`, `patches`, `postsync.d` and
+`conf-update.d` directories. The module does not use `eselect profile` or `eselect repository`.
 
 ## Setup
 

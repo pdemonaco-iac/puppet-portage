@@ -7,7 +7,10 @@
 # @param root
 #   Config root of the owning target.
 # @param content
-#   Script text, including the shebang line.
+#   Script text, including the shebang line. Exactly one of content and
+#   source is required.
+# @param source
+#   Script file source. Exactly one of content and source is required.
 # @param per_repo
 #   Install into repo.postsync.d instead of postsync.d.
 # @param filename
@@ -18,12 +21,17 @@
 #   File name patterns exempt from purging.
 define portage::postsync (
   Portage::Targetroot $root,
-  String[1] $content,
+  Optional[String[1]] $content = undef,
+  Optional[Stdlib::Filesource] $source = undef,
   Boolean $per_repo = false,
   Optional[Pattern[/\A[A-Za-z0-9_][A-Za-z0-9_.+-]*\z/]] $filename = undef,
   Boolean $purge = true,
   Array[String[1]] $purge_ignore = [],
 ) {
+  if ($content == undef) == ($source == undef) {
+    fail("portage::postsync[${title}]: exactly one of content and source is required")
+  }
+
   $prefix = $root ? {
     '/'     => '',
     default => $root,
@@ -52,6 +60,7 @@ define portage::postsync (
     group   => 'root',
     mode    => '0755',
     content => $content,
+    source  => $source,
     require => File[$dir],
   }
 }

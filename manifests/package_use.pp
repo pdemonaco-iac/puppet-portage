@@ -3,7 +3,8 @@
 # @param root
 #   Config root of the owning target.
 # @param entries
-#   Atoms mapped to the USE flags that follow them on the line.
+#   Atoms mapped to the tokens that follow them on the line: USE flags,
+#   `-*`, and USE_EXPAND group markers such as `PYTHON_TARGETS:`.
 # @param filename
 #   File name; defaults to the title minus its `<target>/` prefix.
 # @param purge
@@ -12,7 +13,7 @@
 #   File name patterns exempt from purging.
 define portage::package_use (
   Portage::Targetroot $root,
-  Hash[Portage::Atom, Array[Portage::Useflag]] $entries,
+  Hash[Portage::Atom, Array[Portage::Packageuseflag]] $entries,
   Optional[String[1]] $filename = undef,
   Boolean $purge = true,
   Array[String[1]] $purge_ignore = [],

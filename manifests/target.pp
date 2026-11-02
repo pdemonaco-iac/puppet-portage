@@ -43,6 +43,8 @@
 #   portage::patch resources.
 # @param postsync
 #   portage::postsync resources.
+# @param conf_update_hooks
+#   portage::conf_update_hook resources.
 # @param purge
 #   Default for every managed directory; a resource's own `purge` wins.
 # @param purge_ignore
@@ -68,6 +70,7 @@ define portage::target (
   Portage::Resources $sets = {},
   Portage::Resources $patches = {},
   Portage::Resources $postsync = {},
+  Portage::Resources $conf_update_hooks = {},
   Boolean $purge = true,
   Hash[String[1], Array[String[1]]] $purge_ignore = {},
 ) {
@@ -121,19 +124,20 @@ define portage::target (
   }
 
   $collections = {
-    'repositories'    => ['portage::repository', $repositories, {}],
-    'binrepos'        => ['portage::binrepo', $binrepos, {}],
-    'binhost_keys'    => ['portage::binhost_key', $binhost_keys, {}],
-    'package_use'     => ['portage::package_use', $package_use, {}],
-    'accept_keywords' => ['portage::accept_keywords', $accept_keywords, {}],
-    'licenses'        => ['portage::license', $licenses, {}],
-    'masks'           => ['portage::mask', $masks, {}],
-    'unmasks'         => ['portage::mask', $unmasks, { 'unmask' => true }],
-    'package_envs'    => ['portage::package_env', $package_envs, {}],
-    'envs'            => ['portage::env', $envs, {}],
-    'sets'            => ['portage::set', $sets, {}],
-    'patches'         => ['portage::patch', $patches, {}],
-    'postsync'        => ['portage::postsync', $postsync, {}],
+    'repositories'      => ['portage::repository', $repositories, {}],
+    'binrepos'          => ['portage::binrepo', $binrepos, {}],
+    'binhost_keys'      => ['portage::binhost_key', $binhost_keys, {}],
+    'package_use'       => ['portage::package_use', $package_use, {}],
+    'accept_keywords'   => ['portage::accept_keywords', $accept_keywords, {}],
+    'licenses'          => ['portage::license', $licenses, {}],
+    'masks'             => ['portage::mask', $masks, {}],
+    'unmasks'           => ['portage::mask', $unmasks, { 'unmask' => true }],
+    'package_envs'      => ['portage::package_env', $package_envs, {}],
+    'envs'              => ['portage::env', $envs, {}],
+    'sets'              => ['portage::set', $sets, {}],
+    'patches'           => ['portage::patch', $patches, {}],
+    'postsync'          => ['portage::postsync', $postsync, {}],
+    'conf_update_hooks' => ['portage::conf_update_hook', $conf_update_hooks, {}],
   }
   $collections.each |$kind, $spec| {
     $defaults = { 'purge' => $purge, 'purge_ignore' => $purge_ignore[$kind] ? { undef => [], default => $purge_ignore[$kind] } } + $spec[2]

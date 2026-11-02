@@ -21,6 +21,7 @@
 * [`portage::binhost_key`](#portage--binhost_key): Imports a binhost's signing public key into the getuto keyring of a target.
 * [`portage::binrepo`](#portage--binrepo): Manages one binrepos.conf/<name>.conf of a target.
 * [`portage::binrepos_default`](#portage--binrepos_default): Manages binrepos.conf/DEFAULT.conf, the [DEFAULT] section, of a target.
+* [`portage::conf_update_hook`](#portage--conf_update_hook): Manages one executable hook in conf-update.d/ of a target.
 * [`portage::env`](#portage--env): Manages one file in /etc/portage/env/ of a target.
 * [`portage::license`](#portage--license): Manages one file in /etc/portage/package.license/ of a target.
 * [`portage::makeconf`](#portage--makeconf): Compatibility shim for the legacy gentoo/portage `portage::makeconf` API.
@@ -49,11 +50,13 @@
 * [`Portage::Keyword`](#Portage--Keyword): An ebuild keyword such as `amd64`, `~amd64`, `-amd64`, `*`, `~*` or `**`.
 * [`Portage::Licensetoken`](#Portage--Licensetoken): A license name, `@GROUP`, or `*` wildcard, optionally negated with `-`.
 * [`Portage::Makeconfig`](#Portage--Makeconfig): The make.conf variables documented in make.conf(5), with the type each accepts.
+* [`Portage::Packageuseflag`](#Portage--Packageuseflag): One token after the atom in package.use.
 * [`Portage::Patchdir`](#Portage--Patchdir): A /etc/portage/patches/<category>/<dir> name: `cat/pn`, `cat/pn-ver` or `cat/pn-ver-rN`, each with an optional `:slot`.
 * [`Portage::Resources`](#Portage--Resources): Resource name mapped to the parameters of that resource, minus `root`.
 * [`Portage::Targetroot`](#Portage--Targetroot): A Portage config root: the host (`/`) or a chroot target.
 * [`Portage::Token`](#Portage--Token): A single whitespace-free item of a space-delimited make.conf list.
 * [`Portage::Uri`](#Portage--Uri): A fetch URI (`http`, `https`, `ftp`, `rsync`, `sftp`, `ssh`) or an absolute mirror path.
+* [`Portage::Useexpandflag`](#Portage--Useexpandflag): A USE flag or USE_EXPAND value, or `-*` to clear every inherited value.
 * [`Portage::Useflag`](#Portage--Useflag): A USE flag, optionally disabled with a leading `-`.
 
 ## Classes
@@ -103,6 +106,7 @@ The following parameters are available in the `portage` class:
 * [`sets`](#-portage--sets)
 * [`patches`](#-portage--patches)
 * [`postsync`](#-portage--postsync)
+* [`conf_update_hooks`](#-portage--conf_update_hooks)
 * [`purge`](#-portage--purge)
 * [`purge_ignore`](#-portage--purge_ignore)
 
@@ -239,6 +243,14 @@ Default value: `{}`
 Data type: `Portage::Resources`
 
 portage::postsync resources.
+
+Default value: `{}`
+
+##### <a name="-portage--conf_update_hooks"></a>`conf_update_hooks`
+
+Data type: `Portage::Resources`
+
+portage::conf_update_hook resources.
 
 Default value: `{}`
 
@@ -1159,6 +1171,70 @@ File name patterns exempt from purging.
 
 Default value: `[]`
 
+### <a name="portage--conf_update_hook"></a>`portage::conf_update_hook`
+
+dispatch-conf and other configuration update tools run each hook with
+`pre-session`, `post-session`, or `post-update <path>` (e.g. an etckeeper
+commit hook).
+
+#### Parameters
+
+The following parameters are available in the `portage::conf_update_hook` defined type:
+
+* [`root`](#-portage--conf_update_hook--root)
+* [`content`](#-portage--conf_update_hook--content)
+* [`source`](#-portage--conf_update_hook--source)
+* [`filename`](#-portage--conf_update_hook--filename)
+* [`purge`](#-portage--conf_update_hook--purge)
+* [`purge_ignore`](#-portage--conf_update_hook--purge_ignore)
+
+##### <a name="-portage--conf_update_hook--root"></a>`root`
+
+Data type: `Portage::Targetroot`
+
+Config root of the owning target.
+
+##### <a name="-portage--conf_update_hook--content"></a>`content`
+
+Data type: `Optional[String[1]]`
+
+Script text, including the shebang line. Exactly one of content and
+source is required.
+
+Default value: `undef`
+
+##### <a name="-portage--conf_update_hook--source"></a>`source`
+
+Data type: `Optional[Stdlib::Filesource]`
+
+Script file source. Exactly one of content and source is required.
+
+Default value: `undef`
+
+##### <a name="-portage--conf_update_hook--filename"></a>`filename`
+
+Data type: `Optional[Pattern[/\A[A-Za-z0-9_][A-Za-z0-9_.+-]*\z/]]`
+
+Hook name; defaults to the title minus its `<target>/` prefix.
+
+Default value: `undef`
+
+##### <a name="-portage--conf_update_hook--purge"></a>`purge`
+
+Data type: `Boolean`
+
+Remove unmanaged files from the hook directory.
+
+Default value: `true`
+
+##### <a name="-portage--conf_update_hook--purge_ignore"></a>`purge_ignore`
+
+Data type: `Array[String[1]]`
+
+File name patterns exempt from purging.
+
+Default value: `[]`
+
 ### <a name="portage--env"></a>`portage::env`
 
 Env files use the make.conf variable syntax and are selected per package
@@ -1445,9 +1521,10 @@ Config root of the owning target.
 
 ##### <a name="-portage--package_use--entries"></a>`entries`
 
-Data type: `Hash[Portage::Atom, Array[Portage::Useflag]]`
+Data type: `Hash[Portage::Atom, Array[Portage::Packageuseflag]]`
 
-Atoms mapped to the USE flags that follow them on the line.
+Atoms mapped to the tokens that follow them on the line: USE flags,
+`-*`, and USE_EXPAND group markers such as `PYTHON_TARGETS:`.
 
 ##### <a name="-portage--package_use--filename"></a>`filename`
 
@@ -1556,6 +1633,7 @@ The following parameters are available in the `portage::postsync` defined type:
 
 * [`root`](#-portage--postsync--root)
 * [`content`](#-portage--postsync--content)
+* [`source`](#-portage--postsync--source)
 * [`per_repo`](#-portage--postsync--per_repo)
 * [`filename`](#-portage--postsync--filename)
 * [`purge`](#-portage--postsync--purge)
@@ -1569,9 +1647,20 @@ Config root of the owning target.
 
 ##### <a name="-portage--postsync--content"></a>`content`
 
-Data type: `String[1]`
+Data type: `Optional[String[1]]`
 
-Script text, including the shebang line.
+Script text, including the shebang line. Exactly one of content and
+source is required.
+
+Default value: `undef`
+
+##### <a name="-portage--postsync--source"></a>`source`
+
+Data type: `Optional[Stdlib::Filesource]`
+
+Script file source. Exactly one of content and source is required.
+
+Default value: `undef`
 
 ##### <a name="-portage--postsync--per_repo"></a>`per_repo`
 
@@ -2325,6 +2414,7 @@ The following parameters are available in the `portage::target` defined type:
 * [`sets`](#-portage--target--sets)
 * [`patches`](#-portage--target--patches)
 * [`postsync`](#-portage--target--postsync)
+* [`conf_update_hooks`](#-portage--target--conf_update_hooks)
 * [`purge`](#-portage--target--purge)
 * [`purge_ignore`](#-portage--target--purge_ignore)
 
@@ -2471,6 +2561,14 @@ portage::postsync resources.
 
 Default value: `{}`
 
+##### <a name="-portage--target--conf_update_hooks"></a>`conf_update_hooks`
+
+Data type: `Portage::Resources`
+
+portage::conf_update_hook resources.
+
+Default value: `{}`
+
 ##### <a name="-portage--target--purge"></a>`purge`
 
 Data type: `Boolean`
@@ -2496,9 +2594,11 @@ Default value: `{}`
 Accepts an optional blocker (`!`, `!!`), a version operator (`<`, `<=`, `=`,
 `>=`, `>`, `~`) with a version, a trailing `*` on `=` atoms, a slot with
 an optional subslot and `=`/`*` slot operator (or a bare `:=`/`:*`), and a
-`::repo` constraint.
+`::repo` constraint. A wildcard atom (`*/*`, `dev-haskell/*`, `*/*::guru`)
+has `*` in its category or package name, no version or slot, and an
+optional `::repo`; package.* files accept it, package sets do not.
 
-Alias of `Pattern[/\A!{0,2}[A-Za-z0-9_][A-Za-z0-9_+.-]*\/[A-Za-z0-9_][A-Za-z0-9_+-]*(:[A-Za-z0-9_][A-Za-z0-9_+.-]*(\/[A-Za-z0-9_][A-Za-z0-9_+.-]*)?[=*]?|:[=*])?(::[A-Za-z0-9_][A-Za-z0-9_-]*)?\z/, /\A!{0,2}(<=|>=|<|>|=|~)?[A-Za-z0-9_][A-Za-z0-9_+.-]*\/[A-Za-z0-9_][A-Za-z0-9_+-]*-[0-9]+(\.[0-9]+)*[a-z]?(_(alpha|beta|pre|rc|p)[0-9]*)*(-r[0-9]*)?\*?(:[A-Za-z0-9_][A-Za-z0-9_+.-]*(\/[A-Za-z0-9_][A-Za-z0-9_+.-]*)?[=*]?|:[=*])?(::[A-Za-z0-9_][A-Za-z0-9_-]*)?\z/]`
+Alias of `Pattern[/\A!{0,2}[A-Za-z0-9_][A-Za-z0-9_+.-]*\/[A-Za-z0-9_][A-Za-z0-9_+-]*(:[A-Za-z0-9_][A-Za-z0-9_+.-]*(\/[A-Za-z0-9_][A-Za-z0-9_+.-]*)?[=*]?|:[=*])?(::[A-Za-z0-9_][A-Za-z0-9_-]*)?\z/, /\A!{0,2}(<=|>=|<|>|=|~)?[A-Za-z0-9_][A-Za-z0-9_+.-]*\/[A-Za-z0-9_][A-Za-z0-9_+-]*-[0-9]+(\.[0-9]+)*[a-z]?(_(alpha|beta|pre|rc|p)[0-9]*)*(-r[0-9]*)?\*?(:[A-Za-z0-9_][A-Za-z0-9_+.-]*(\/[A-Za-z0-9_][A-Za-z0-9_+.-]*)?[=*]?|:[=*])?(::[A-Za-z0-9_][A-Za-z0-9_-]*)?\z/, /\A(?=[^:]*\*)[A-Za-z0-9_*][A-Za-z0-9_+.*-]*\/[A-Za-z0-9_*][A-Za-z0-9_+*-]*(::[A-Za-z0-9_][A-Za-z0-9_-]*)?\z/]`
 
 ### <a name="Portage--Cronschedule"></a>`Portage::Cronschedule`
 
@@ -2541,16 +2641,27 @@ Lists are arrays and are space-joined when rendered (`USE_ORDER` is
 colon-joined). Deprecated variables (PORTDIR, PORTDIR_OVERLAY, SYNC,
 PORT_LOGDIR, PORT_LOGDIR_CLEAN) are intentionally absent.
 
+The user-settable USE_EXPAND variables from profiles/base/make.defaults
+(CPU_FLAGS_X86, PYTHON_TARGETS, VIDEO_CARDS, ...) are accepted and may
+start with `-*` to clear the profile default. APACHE2_MODULES and
+APACHE2_MPMS are absent because the portage::makeconf shim owns them.
+COMMON_FLAGS is the conventional base that CFLAGS and friends reference as
+`${COMMON_FLAGS}`.
+
 Alias of
 
 ```puppet
 Struct[{
+  Optional['ABI_X86']                             => Array[Portage::Useexpandflag],
   Optional['ACCEPT_CHOSTS']                       => Array[Portage::Token],
   Optional['ACCEPT_KEYWORDS']                     => Array[Portage::Keyword],
   Optional['ACCEPT_LICENSE']                      => Array[Portage::Licensetoken],
   Optional['ACCEPT_PROPERTIES']                   => Array[Pattern[/\A(-?\*|-?[A-Za-z0-9_][A-Za-z0-9_+.-]*)\z/]],
   Optional['ACCEPT_RESTRICT']                     => Array[Pattern[/\A(-?\*|-?[A-Za-z0-9_][A-Za-z0-9_+.-]*)\z/]],
+  Optional['ADA_TARGET']                          => Array[Portage::Useexpandflag],
   Optional['ALLOW_TEST']                          => Array[Enum['all', 'network', 'privileged']],
+  Optional['ALSA_CARDS']                          => Array[Portage::Useexpandflag],
+  Optional['AMDGPU_TARGETS']                      => Array[Portage::Useexpandflag],
   Optional['BINPKG_COMPRESS']                     => Enum['bzip2', 'gzip', 'lz4', 'lzip', 'lzop', 'xz', 'zstd'],
   Optional['BINPKG_COMPRESS_FLAGS']               => Array[String[1]],
   Optional['BINPKG_COMPRESS_FLAGS_BZIP2']         => Array[String[1]],
@@ -2567,16 +2678,25 @@ Struct[{
   Optional['BINPKG_GPG_SIGNING_KEY']              => String[1],
   Optional['BINPKG_GPG_VERIFY_BASE_COMMAND']      => String[1],
   Optional['BINPKG_GPG_VERIFY_GPG_HOME']          => Stdlib::Unixpath,
+  Optional['CALLIGRA_FEATURES']                   => Array[Portage::Useexpandflag],
+  Optional['CAMERAS']                             => Array[Portage::Useexpandflag],
   Optional['CBUILD']                              => String[1],
   Optional['CCACHE_DIR']                          => Stdlib::Unixpath,
   Optional['CCACHE_SIZE']                         => Pattern[/\A[0-9]+(\.[0-9]+)?[KMGT]?\z/],
   Optional['CFLAGS']                              => Array[String[1]],
   Optional['CHOST']                               => String[1],
   Optional['CLEAN_DELAY']                         => Integer[0],
+  Optional['COLLECTD_PLUGINS']                    => Array[Portage::Useexpandflag],
   Optional['COLLISION_IGNORE']                    => Array[Portage::Token],
+  Optional['COMMON_FLAGS']                        => Array[String[1]],
   Optional['CONFIG_PROTECT']                      => Array[Portage::Token],
   Optional['CONFIG_PROTECT_MASK']                 => Array[Portage::Token],
+  Optional['CPU_FLAGS_ARM']                       => Array[Portage::Useexpandflag],
+  Optional['CPU_FLAGS_PPC']                       => Array[Portage::Useexpandflag],
+  Optional['CPU_FLAGS_X86']                       => Array[Portage::Useexpandflag],
   Optional['CTARGET']                             => String[1],
+  Optional['CURL_QUIC']                           => Array[Portage::Useexpandflag],
+  Optional['CURL_SSL']                            => Array[Portage::Useexpandflag],
   Optional['CXXFLAGS']                            => Array[String[1]],
   Optional['DISTDIR']                             => Stdlib::Unixpath,
   Optional['DOC_SYMLINKS_DIR']                    => Stdlib::Unixpath,
@@ -2594,12 +2714,34 @@ Struct[{
   Optional['GENTOO_MIRRORS']                      => Array[Portage::Uri],
   Optional['GPG_VERIFY_GROUP_DROP']               => String[1],
   Optional['GPG_VERIFY_USER_DROP']                => String[1],
+  Optional['GPSD_PROTOCOLS']                      => Array[Portage::Useexpandflag],
+  Optional['GRUB_PLATFORMS']                      => Array[Portage::Useexpandflag],
+  Optional['GUILE_SINGLE_TARGET']                 => Array[Portage::Useexpandflag],
+  Optional['GUILE_TARGETS']                       => Array[Portage::Useexpandflag],
+  Optional['INPUT_DEVICES']                       => Array[Portage::Useexpandflag],
   Optional['INSTALL_MASK']                        => Array[Portage::Token],
+  Optional['L10N']                                => Array[Portage::Useexpandflag],
+  Optional['LCD_DEVICES']                         => Array[Portage::Useexpandflag],
   Optional['LDFLAGS']                             => Array[String[1]],
+  Optional['LIBREOFFICE_EXTENSIONS']              => Array[Portage::Useexpandflag],
+  Optional['LLVM_SLOT']                           => Array[Portage::Useexpandflag],
+  Optional['LLVM_TARGETS']                        => Array[Portage::Useexpandflag],
+  Optional['LUA_SINGLE_TARGET']                   => Array[Portage::Useexpandflag],
+  Optional['LUA_TARGETS']                         => Array[Portage::Useexpandflag],
   Optional['MAKEFLAGS']                           => Array[String[1]],
   Optional['MAKEOPTS']                            => Array[String[1]],
+  Optional['NGINX_MODULES_HTTP']                  => Array[Portage::Useexpandflag],
+  Optional['NGINX_MODULES_MAIL']                  => Array[Portage::Useexpandflag],
+  Optional['NGINX_MODULES_STREAM']                => Array[Portage::Useexpandflag],
+  Optional['NINJAJOBS']                           => Integer[1],
   Optional['NOCOLOR']                             => Boolean,
   Optional['NO_COLOR']                            => String[1],
+  Optional['OFFICE_IMPLEMENTATION']               => Array[Portage::Useexpandflag],
+  Optional['OPENMPI_FABRICS']                     => Array[Portage::Useexpandflag],
+  Optional['OPENMPI_OFED_FEATURES']               => Array[Portage::Useexpandflag],
+  Optional['OPENMPI_RM']                          => Array[Portage::Useexpandflag],
+  Optional['PERL_FEATURES']                       => Array[Portage::Useexpandflag],
+  Optional['PHP_TARGETS']                         => Array[Portage::Useexpandflag],
   Optional['PKGDIR']                              => Stdlib::Unixpath,
   Optional['PORTAGE_BINHOST']                     => Array[Portage::Uri],
   Optional['PORTAGE_BINHOST_HEADER_URI']          => Portage::Uri,
@@ -2647,20 +2789,41 @@ Struct[{
   Optional['PORTAGE_USERNAME']                    => String[1],
   Optional['PORTAGE_WORKDIR_MODE']                => Stdlib::Filemode,
   Optional['PORTAGE_XATTR_EXCLUDE']               => Array[Portage::Token],
+  Optional['POSTGRES_TARGETS']                    => Array[Portage::Useexpandflag],
+  Optional['PYTHON_SINGLE_TARGET']                => Array[Portage::Useexpandflag],
+  Optional['PYTHON_TARGETS']                      => Array[Portage::Useexpandflag],
   Optional['QA_STRICT_EXECSTACK']                 => Enum['set'],
   Optional['QA_STRICT_FLAGS_IGNORED']             => Enum['set'],
   Optional['QA_STRICT_MULTILIB_PATHS']            => Enum['set'],
   Optional['QA_STRICT_PRESTRIPPED']               => Enum['set'],
   Optional['QA_STRICT_TEXTRELS']                  => Enum['set'],
   Optional['QA_STRICT_WX_LOAD']                   => Enum['set'],
+  Optional['QEMU_SOFTMMU_TARGETS']                => Array[Portage::Useexpandflag],
+  Optional['QEMU_USER_TARGETS']                   => Array[Portage::Useexpandflag],
   Optional['RESUMECOMMAND']                       => String[1],
   Optional['ROOT']                                => Stdlib::Unixpath,
   Optional['RPMDIR']                              => Stdlib::Unixpath,
+  Optional['RUBY_TARGETS']                        => Array[Portage::Useexpandflag],
+  Optional['RUST_SYSROOTS']                       => Array[Portage::Useexpandflag],
+  Optional['SANE_BACKENDS']                       => Array[Portage::Useexpandflag],
+  Optional['SELINUX_POLICY_TYPES']                => Array[Portage::Useexpandflag],
   Optional['UNINSTALL_IGNORE']                    => Array[Portage::Token],
   Optional['USE']                                 => Array[Portage::Useflag],
   Optional['USE_ORDER']                           => Array[Enum['env', 'pkg', 'conf', 'defaults', 'pkginternal', 'features', 'repo', 'env.d']],
+  Optional['UWSGI_PLUGINS']                       => Array[Portage::Useexpandflag],
+  Optional['VIDEO_CARDS']                         => Array[Portage::Useexpandflag],
+  Optional['VOICEMAIL_STORAGE']                   => Array[Portage::Useexpandflag],
+  Optional['XTABLES_ADDONS']                      => Array[Portage::Useexpandflag],
 }]
 ```
+
+### <a name="Portage--Packageuseflag"></a>`Portage::Packageuseflag`
+
+A USE flag, `-*`, or an upper-case USE_EXPAND group marker such as
+`PYTHON_TARGETS:` that applies the tokens following it to that group,
+e.g. `['PYTHON_TARGETS:', '-*', 'python3_13']`.
+
+Alias of `Variant[Portage::Useexpandflag, Pattern[/\A[A-Z][A-Z0-9_]*:\z/]]`
 
 ### <a name="Portage--Patchdir"></a>`Portage::Patchdir`
 
@@ -2691,6 +2854,12 @@ Alias of `Pattern[/\A[^\s"]+\z/]`
 A fetch URI (`http`, `https`, `ftp`, `rsync`, `sftp`, `ssh`) or an absolute mirror path.
 
 Alias of `Variant[Stdlib::HTTPUrl, Stdlib::Unixpath, Pattern[/\A(ftp|rsync|sftp|ssh):\/\/[^\s"]+\z/]]`
+
+### <a name="Portage--Useexpandflag"></a>`Portage::Useexpandflag`
+
+A USE flag or USE_EXPAND value, or `-*` to clear every inherited value.
+
+Alias of `Variant[Portage::Useflag, Enum['-*']]`
 
 ### <a name="Portage--Useflag"></a>`Portage::Useflag`
 

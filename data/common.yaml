@@ -68,6 +68,10 @@ lookup_options:
     merge:
       strategy: deep
       knockout_prefix: '--'
+  portage::conf_update_hooks:
+    merge:
+      strategy: deep
+      knockout_prefix: '--'
   portage::purge_ignore:
     merge:
       strategy: deep

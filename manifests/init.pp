@@ -41,6 +41,8 @@
 #   portage::patch resources.
 # @param postsync
 #   portage::postsync resources.
+# @param conf_update_hooks
+#   portage::conf_update_hook resources.
 # @param purge
 #   Default for every managed directory.
 # @param purge_ignore
@@ -73,29 +75,31 @@ class portage (
   Portage::Resources $sets = {},
   Portage::Resources $patches = {},
   Portage::Resources $postsync = {},
+  Portage::Resources $conf_update_hooks = {},
   Boolean $purge = true,
   Hash[String[1], Array[String[1]]] $purge_ignore = {},
 ) {
   portage::target { 'host':
-    root             => '/',
-    make_conf        => $make_conf,
-    repos_default    => $repos_default,
-    repositories     => $repositories,
-    profile          => $profile,
-    binrepos_default => $binrepos_default,
-    binrepos         => $binrepos,
-    binhost_keys     => $binhost_keys,
-    package_use      => $package_use,
-    accept_keywords  => $accept_keywords,
-    licenses         => $licenses,
-    masks            => $masks,
-    unmasks          => $unmasks,
-    package_envs     => $package_envs,
-    envs             => $envs,
-    sets             => $sets,
-    patches          => $patches,
-    postsync         => $postsync,
-    purge            => $purge,
-    purge_ignore     => $purge_ignore,
+    root              => '/',
+    make_conf         => $make_conf,
+    repos_default     => $repos_default,
+    repositories      => $repositories,
+    profile           => $profile,
+    binrepos_default  => $binrepos_default,
+    binrepos          => $binrepos,
+    binhost_keys      => $binhost_keys,
+    package_use       => $package_use,
+    accept_keywords   => $accept_keywords,
+    licenses          => $licenses,
+    masks             => $masks,
+    unmasks           => $unmasks,
+    package_envs      => $package_envs,
+    envs              => $envs,
+    sets              => $sets,
+    patches           => $patches,
+    postsync          => $postsync,
+    conf_update_hooks => $conf_update_hooks,
+    purge             => $purge,
+    purge_ignore      => $purge_ignore,
   }
 }
