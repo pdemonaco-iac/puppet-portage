@@ -7,6 +7,7 @@ describe 'portage::set' do
   let(:params) { { root: '/', atoms: ['app-editors/vim', '=dev-lang/ruby-3.3*', '@base-tools'] } }
 
   it { is_expected.to contain_file('/etc/portage/sets').with(ensure: 'directory', recurse: true, purge: true, ignore: []) }
+  it { is_expected.to contain_portage__managed_dir('/etc/portage/sets') }
 
   it do
     is_expected.to contain_file('/etc/portage/sets/tools').with(ensure: 'file', mode: '0644').with_content(<<~CONF)
@@ -28,6 +29,8 @@ describe 'portage::set' do
   context 'with a chroot root and world' do
     let(:params) { super().merge(root: '/var/lib/portage-targets/stage3', world: true) }
 
+    it { is_expected.to contain_portage__managed_dir('/var/lib/portage-targets/stage3/etc/portage/sets') }
+    it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/sets').with(ensure: 'directory', purge: true) }
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/sets/tools') }
     it { is_expected.to contain_file_line('host/tools in world_sets').with_path('/var/lib/portage-targets/stage3/var/lib/portage/world_sets') }
   end
@@ -42,6 +45,8 @@ describe 'portage::set' do
     let(:pre_condition) { "portage::set { 'host/other': root => '/', atoms => ['app-misc/foo'] }" }
 
     it { is_expected.to compile.with_all_deps }
+    it { is_expected.to contain_portage__managed_dir('/etc/portage/sets') }
+    it { is_expected.to contain_file('/etc/portage/sets/other').with(ensure: 'file', mode: '0644').with_content(%r{^app-misc/foo$}) }
   end
 
   context 'with an invalid atom' do

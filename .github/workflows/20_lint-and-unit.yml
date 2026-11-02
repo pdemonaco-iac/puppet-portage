@@ -16,6 +16,22 @@ jobs:
     name: Puppet
     uses: voxpupuli/gha-puppet/.github/workflows/basic.yml@v2
 
+  coverage:
+    name: Resource coverage (>= 90%)
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_WITHOUT: development:system_tests:release
+      COVERAGE_MIN: '90'
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+      - name: Run unit tests with the coverage threshold
+        run: bundle exec rake spec
+
 #  acceptance:
 #    name: Acceptance Tests
 #    runs-on: ubuntu-latest

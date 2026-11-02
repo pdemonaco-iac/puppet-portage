@@ -7,6 +7,7 @@ describe 'portage::binrepo' do
   let(:params) { { root: '/', sync_uri: 'https://binhost.example.org/amd64', priority: 10, verify_signature: true } }
 
   it { is_expected.to contain_file('/etc/portage/binrepos.conf').with(ensure: 'directory', recurse: true, purge: true) }
+  it { is_expected.to contain_portage__managed_dir('/etc/portage/binrepos.conf') }
 
   it do
     is_expected.to contain_file('/etc/portage/binrepos.conf/buildhost.conf')
@@ -46,6 +47,7 @@ describe 'portage::binrepo' do
 
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/binrepos.conf').with(recurse: false, purge: false, ignore: ['local-*']) }
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/binrepos.conf/buildhost.conf') }
+    it { is_expected.to contain_portage__managed_dir('/var/lib/portage-targets/stage3/etc/portage/binrepos.conf').with(purge: false, purge_ignore: ['local-*']) }
   end
 
   context 'with binrepo_name' do

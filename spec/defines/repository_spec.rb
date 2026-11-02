@@ -7,6 +7,7 @@ describe 'portage::repository' do
   let(:params) { { root: '/', sync_type: 'rsync', sync_uri: 'rsync://mirror.example/gentoo-portage' } }
 
   it { is_expected.to contain_file('/etc/portage/repos.conf').with(ensure: 'directory', recurse: true, purge: true, ignore: []) }
+  it { is_expected.to contain_portage__managed_dir('/etc/portage/repos.conf').with(purge: true, purge_ignore: []) }
 
   it do
     is_expected.to contain_file('/etc/portage/repos.conf/gentoo.conf').with(

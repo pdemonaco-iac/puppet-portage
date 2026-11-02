@@ -12,6 +12,7 @@ describe 'portage::package_use' do
   context 'with a chroot root' do
     let(:params) { super().merge(root: '/var/lib/portage-targets/stage3') }
 
+    it { is_expected.to contain_portage__managed_dir('/var/lib/portage-targets/stage3/etc/portage/package.use') }
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/package.use/web') }
   end
 

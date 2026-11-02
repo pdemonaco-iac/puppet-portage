@@ -76,5 +76,5 @@ Declaratively manage Gentoo Portage configuration on consumer nodes and on a bui
 
 ### Platform Support
 
-- Gentoo only, x86-64 only. OpenVox 8.x+.
-- Code must be clean under OpenVox 8 defaults: `strict = error`, `strict_variables = true`, structured facts only (`$facts['os']['family']`), typed parameters, `stdlib::` namespaced functions, no `puppetlabs-concat` in this module's code (it is present only as a transitive dependency of `puppetlabs-apache`), Ruby 3.2+ for custom facts/functions.
+- Gentoo only, x86-64 only. OpenVox 8.x and 9.x.
+- Code must be clean under OpenVox 8 and 9 defaults: `strict = error`, `strict_variables = true`, structured facts only (`$facts['os']['family']`), typed parameters, `stdlib::` namespaced functions, no `puppetlabs-concat` in this module's code (it is present only as a transitive dependency of `puppetlabs-apache`), Ruby 3.2+ for custom facts/functions.

@@ -36,6 +36,18 @@ describe 'portage::buildhost' do
     it { is_expected.to contain_portage__profile('desktop/profile').with_root('/var/lib/portage-targets/desktop') }
     it { is_expected.to contain_file('/var/lib/portage-targets/desktop/etc/portage/make.conf').with_content(%r{^FEATURES="getbinpkg buildpkg"$}).with_content(%r{^MAKEOPTS="-j8"$}) }
     it { is_expected.to contain_file('/var/lib/portage-targets/server/etc/portage/make.conf').with_content(%r{^FEATURES="buildpkg"$}) }
+    it { is_expected.to contain_portage__makeconf_file('desktop/make.conf').with_root('/var/lib/portage-targets/desktop') }
+    it { is_expected.to contain_portage__makeconf_file('server/make.conf').with_root('/var/lib/portage-targets/server') }
+
+    %w[desktop server].each do |name|
+      it { is_expected.to contain_file("/var/lib/portage-targets/#{name}/etc/portage").with(ensure: 'directory', mode: '0755') }
+      it { is_expected.to contain_file("/var/lib/portage-targets/#{name}/etc/portage/binrepos.conf").with(ensure: 'directory', purge: true) }
+      it { is_expected.to contain_portage__managed_dir("/var/lib/portage-targets/#{name}/etc/portage/binrepos.conf") }
+      it { is_expected.to contain_portage__binrepo("#{name}/upstream").with_root("/var/lib/portage-targets/#{name}") }
+    end
+
+    it { is_expected.to contain_portage__binrepo('server/extra').with(root: '/var/lib/portage-targets/server', sync_uri: 'https://binhost.example.org/x') }
+    it { is_expected.to contain_file('/var/lib/portage-targets/desktop/etc/portage/make.profile').with_target('../../var/db/repos/gentoo/profiles/default/linux/amd64/23.0/desktop/systemd') }
 
     it 'adds the upstream binrepo with signature verification to every target' do
       %w[desktop server].each do |name|
@@ -48,6 +60,7 @@ describe 'portage::buildhost' do
 
     it { is_expected.to contain_file('/var/lib/portage-targets/server/etc/portage/binrepos.conf/extra.conf') }
     it { is_expected.not_to contain_file('/var/lib/portage-targets/desktop/etc/portage/binrepos.conf/extra.conf') }
+    it { is_expected.to contain_file('/var/cache/portage-targets').with(ensure: 'directory') }
     it { is_expected.to contain_file('/var/cache/portage-targets/desktop').with(ensure: 'directory') }
     it { is_expected.to contain_file('/var/cache/portage-targets/server').with(ensure: 'directory') }
     it { is_expected.to contain_class('portage::buildhost::publish').with_targets(%w[desktop server]) }
@@ -99,6 +112,16 @@ describe 'portage::buildhost' do
     it { is_expected.to contain_file('/var/lib/portage-targets/desktop/etc/portage/binpkg-signing/signing-key.asc').with_mode('0600') }
     it { is_expected.to contain_file('/var/lib/portage-targets/server/etc/portage/binpkg-signing/signing-key.asc').with_mode('0600') }
 
+    %w[desktop server].each do |name|
+      it { is_expected.to contain_file("/var/lib/portage-targets/#{name}/etc/portage/binpkg-signing").with(ensure: 'directory', mode: '0700') }
+      it { is_expected.to contain_file("/var/lib/portage-targets/#{name}/etc/portage/binpkg-signing/signing-key.pub.asc").with(ensure: 'file', mode: '0644') }
+
+      it do
+        is_expected.to contain_exec("import binpkg signing key into /var/lib/portage-targets/#{name}")
+          .that_requires("File[/var/lib/portage-targets/#{name}/etc/portage/binpkg-signing/signing-key.asc]")
+      end
+    end
+
     it 'adds the signing settings to every target' do
       %w[desktop server].each do |name|
         is_expected.to contain_file("/var/lib/portage-targets/#{name}/etc/portage/make.conf")
@@ -134,6 +157,9 @@ describe 'portage::buildhost' do
     it { expect(wrapper).to include('umount -R') }
     it { expect(wrapper).to include('chroot "$root" /usr/bin/emerge "$@"') }
     it { is_expected.not_to contain_mount('/var/lib/portage-targets/desktop/proc') }
+    it { is_expected.to contain_file('/srv/pkgdirs').with(ensure: 'directory') }
+    it { is_expected.to contain_file('/srv/pkgdirs/desktop').with(ensure: 'directory') }
+    it { is_expected.to contain_file('/srv/pkgdirs/server').with(ensure: 'directory') }
 
     it 'is valid bash' do
       _out, err, status = Open3.capture3('bash', '-n', stdin_data: wrapper)

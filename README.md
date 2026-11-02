@@ -55,7 +55,7 @@ directories. The module does not use `eselect profile` or `eselect repository`.
 
 ### Setup requirements
 
-* OpenVox 8.x or later (agent and server), with Hiera 5 and eyaml.
+* OpenVox 8.x or 9.x (agent and server), with Hiera 5 and eyaml.
 * Gentoo on x86-64. Other architectures are out of scope.
 * Stage3 bootstrap of build chroots is manual or scripted outside this module.
 * Modules: `puppetlabs/stdlib`, `puppetlabs/cron_core` (for the optional

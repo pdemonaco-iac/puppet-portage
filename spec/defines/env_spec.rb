@@ -29,6 +29,8 @@ describe 'portage::env' do
   context 'with a chroot root' do
     let(:params) { super().merge(root: '/var/lib/portage-targets/stage3') }
 
+    it { is_expected.to contain_portage__managed_dir('/var/lib/portage-targets/stage3/etc/portage/env') }
+    it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/env').with(ensure: 'directory', purge: true) }
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/env/lowmem') }
 
     context 'with -march=native' do

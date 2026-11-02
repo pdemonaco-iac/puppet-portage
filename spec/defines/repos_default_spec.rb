@@ -7,6 +7,7 @@ describe 'portage::repos_default' do
   let(:params) { { root: '/', main_repo: 'gentoo' } }
 
   it { is_expected.to contain_file('/etc/portage/repos.conf').with(ensure: 'directory', purge: true) }
+  it { is_expected.to contain_portage__managed_dir('/etc/portage/repos.conf') }
 
   it do
     is_expected.to contain_file('/etc/portage/repos.conf/DEFAULT.conf').with(

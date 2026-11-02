@@ -11,6 +11,7 @@ describe 'portage::binhost_key' do
   it { is_expected.to compile.with_all_deps }
 
   it { is_expected.to contain_file('/etc/portage/binhost-keys').with(ensure: 'directory', purge: true) }
+  it { is_expected.to contain_portage__managed_dir('/etc/portage/binhost-keys') }
   it { is_expected.to contain_file('/etc/portage/binhost-keys/buildhost.asc').with(ensure: 'file', mode: '0644', content: public_key) }
 
   it 'never manages, and so never purges, the getuto keyring' do
@@ -49,6 +50,8 @@ describe 'portage::binhost_key' do
     it { is_expected.to contain_exec('getuto /var/lib/portage-targets/stage3').with(environment: ['ROOT=/var/lib/portage-targets/stage3'], creates: '/var/lib/portage-targets/stage3/etc/portage/gnupg') }
     it { is_expected.to contain_exec("import binhost key #{fpr} into /var/lib/portage-targets/stage3").with_unless(%r{\Agpg --homedir /var/lib/portage-targets/stage3/etc/portage/gnupg }) }
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/binhost-keys/buildhost.asc') }
+    it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/binhost-keys').with(ensure: 'directory', purge: true) }
+    it { is_expected.to contain_portage__managed_dir('/var/lib/portage-targets/stage3/etc/portage/binhost-keys') }
   end
 
   context 'with two keys in one root' do
@@ -58,6 +61,7 @@ describe 'portage::binhost_key' do
 
     it { is_expected.to compile.with_all_deps }
     it { is_expected.to contain_exec('import binhost key 89ABCDEF0123456789ABCDEF0123456789ABCDEF into /').that_requires('Exec[getuto /]') }
+    it { is_expected.to contain_file('/etc/portage/binhost-keys/other.asc').with(ensure: 'file', mode: '0644') }
   end
 
   context 'with a short key id' do

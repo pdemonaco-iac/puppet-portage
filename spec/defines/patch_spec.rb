@@ -7,6 +7,7 @@ describe 'portage::patch' do
   let(:params) { { root: '/', package: 'sys-apps/sed-4.8-r1:0', content: "--- a\n+++ b\n" } }
 
   it { is_expected.to contain_file('/etc/portage/patches').with(ensure: 'directory', recurse: true, purge: true) }
+  it { is_expected.to contain_portage__managed_dir('/etc/portage/patches') }
   it { is_expected.to contain_file('/etc/portage/patches/sys-apps').with(ensure: 'directory') }
   it { is_expected.to contain_file('/etc/portage/patches/sys-apps/sed-4.8-r1:0').with(ensure: 'directory') }
 
@@ -21,12 +22,17 @@ describe 'portage::patch' do
   context 'with source and a .diff filename' do
     let(:params) { { root: '/', package: 'sys-apps/sed', source: 'puppet:///modules/profile/sed.diff', filename: 'sed.diff' } }
 
+    it { is_expected.to contain_file('/etc/portage/patches/sys-apps/sed').with(ensure: 'directory') }
     it { is_expected.to contain_file('/etc/portage/patches/sys-apps/sed/sed.diff').with_source('puppet:///modules/profile/sed.diff') }
   end
 
   context 'with a chroot root' do
     let(:params) { super().merge(root: '/var/lib/portage-targets/stage3') }
 
+    it { is_expected.to contain_portage__managed_dir('/var/lib/portage-targets/stage3/etc/portage/patches') }
+    it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/patches').with(ensure: 'directory', purge: true) }
+    it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/patches/sys-apps').with(ensure: 'directory') }
+    it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/patches/sys-apps/sed-4.8-r1:0').with(ensure: 'directory') }
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/patches/sys-apps/sed-4.8-r1:0/fix-build.patch') }
   end
 
@@ -39,6 +45,23 @@ describe 'portage::patch' do
     end
 
     it { is_expected.to compile.with_all_deps }
+    it { is_expected.to contain_portage__managed_dir('/etc/portage/patches') }
+    it { is_expected.to contain_file('/etc/portage/patches/sys-apps').with(ensure: 'directory') }
+    it { is_expected.to contain_file('/etc/portage/patches/sys-apps/sed-4.8-r1:0').with(ensure: 'directory') }
+    it { is_expected.to contain_file('/etc/portage/patches/sys-apps/sed-4.8-r1:0/b.patch').with(ensure: 'file', content: 'x') }
+    it { is_expected.to contain_file('/etc/portage/patches/sys-apps/grep').with(ensure: 'directory') }
+    it { is_expected.to contain_file('/etc/portage/patches/sys-apps/grep/c.patch').with(ensure: 'file', content: 'x') }
+  end
+
+  context 'with patches for packages in different categories' do
+    let(:pre_condition) do
+      "portage::patch { 'host/fix.patch': root => '/', package => 'app-editors/vim', content => 'y' }"
+    end
+
+    it { is_expected.to compile.with_all_deps }
+    it { is_expected.to contain_file('/etc/portage/patches/app-editors').with(ensure: 'directory') }
+    it { is_expected.to contain_file('/etc/portage/patches/app-editors/vim').with(ensure: 'directory') }
+    it { is_expected.to contain_file('/etc/portage/patches/app-editors/vim/fix.patch').with(ensure: 'file', content: 'y') }
   end
 
   context 'with neither content nor source' do

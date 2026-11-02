@@ -62,6 +62,26 @@ describe 'portage::target' do
     it { is_expected.to contain_portage__postsync('host/10-notify') }
     it { is_expected.to contain_file('/etc/portage/package.unmask/unpins') }
     it { is_expected.to contain_file('/etc/portage/package.mask/pins') }
+    it { is_expected.to contain_file('/etc/portage/package.accept_keywords/keywords').with_content(%r{^dev-lang/rust ~amd64$}) }
+    it { is_expected.to contain_file('/etc/portage/package.license/licenses').with_content(%r{^sys-kernel/linux-firmware linux-fw-redistributable$}) }
+    it { is_expected.to contain_file('/etc/portage/package.env/envs').with_content(%r{^dev-qt/qtwebengine lowjobs$}) }
+    it { is_expected.to contain_file('/etc/portage/env/lowjobs').with_content(%r{^MAKEOPTS="-j2"$}) }
+
+    %w[package.accept_keywords package.license package.mask package.env env].each do |dir|
+      it { is_expected.to contain_file("/etc/portage/#{dir}").with(ensure: 'directory', recurse: true, purge: true) }
+      it { is_expected.to contain_portage__managed_dir("/etc/portage/#{dir}") }
+    end
+
+    {
+      'host/use' => 'package.use',
+      'host/keywords' => 'package.accept_keywords',
+      'host/licenses' => 'package.license',
+      'host/pins' => 'package.mask',
+      'host/unmask/unpins' => 'package.unmask',
+      'host/envs' => 'package.env',
+    }.each do |name, kind|
+      it { is_expected.to contain_portage__atomfile("#{name}:#{kind}").with(kind: kind, root: '/') }
+    end
     it { is_expected.to contain_file('/etc/portage/binrepos.conf/DEFAULT.conf') }
     it { is_expected.to contain_file('/etc/portage/repos.conf/DEFAULT.conf') }
   end
@@ -84,6 +104,26 @@ describe 'portage::target' do
 
     %w[package.use package.accept_keywords package.license package.mask package.unmask package.env].each do |kind|
       it { is_expected.to contain_file("/etc/portage/#{kind}/local") }
+      it { is_expected.to contain_file("/etc/portage/#{kind}").with(ensure: 'directory', recurse: true, purge: true) }
+      it { is_expected.to contain_portage__managed_dir("/etc/portage/#{kind}").with(purge: true, purge_ignore: []) }
+    end
+
+    it { is_expected.to contain_portage__package_use('host/local') }
+    it { is_expected.to contain_portage__accept_keywords('host/local') }
+    it { is_expected.to contain_portage__license('host/local') }
+    it { is_expected.to contain_portage__mask('host/local').with_unmask(false) }
+    it { is_expected.to contain_portage__mask('host/unmask/local').with(unmask: true, filename: 'local') }
+    it { is_expected.to contain_portage__package_env('host/local') }
+
+    {
+      'host/local:package.use' => 'package.use',
+      'host/local:package.accept_keywords' => 'package.accept_keywords',
+      'host/local:package.license' => 'package.license',
+      'host/local:package.mask' => 'package.mask',
+      'host/unmask/local:package.unmask' => 'package.unmask',
+      'host/local:package.env' => 'package.env',
+    }.each do |atomfile, kind|
+      it { is_expected.to contain_portage__atomfile(atomfile).with(kind: kind, root: '/') }
     end
   end
 
@@ -136,6 +176,8 @@ describe 'portage::target' do
     let(:params) { { root: '/', postsync: { 'x' => { 'root' => '/var/lib/portage-targets/other', 'content' => '#!/bin/sh' } } } }
 
     it { is_expected.to contain_portage__postsync('host/x').with_root('/') }
+    it { is_expected.to contain_file('/etc/portage/postsync.d/x').with(ensure: 'file', mode: '0755') }
+    it { is_expected.not_to contain_file('/var/lib/portage-targets/other/etc/portage/postsync.d/x') }
   end
 
   context 'with a host and a chroot target in one catalog' do
@@ -169,6 +211,20 @@ describe 'portage::target' do
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/make.conf').with_content(%r{-j4}) }
     it { is_expected.to contain_file('/etc/portage/package.use/use').with_content(%r{clippy}) }
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/package.use/use').with_content(%r{doc}) }
+    it { is_expected.to contain_portage__makeconf_file('stage3/make.conf').with_root('/var/lib/portage-targets/stage3') }
+    it { is_expected.to contain_portage__package_use('stage3/use').with_root('/var/lib/portage-targets/stage3') }
+    it { is_expected.to contain_portage__env('stage3/lowjobs').with_root('/var/lib/portage-targets/stage3') }
+    it { is_expected.to contain_portage__package_env('stage3/envs').with_root('/var/lib/portage-targets/stage3') }
+    it { is_expected.to contain_portage__atomfile('stage3/use:package.use').with(kind: 'package.use', root: '/var/lib/portage-targets/stage3') }
+    it { is_expected.to contain_portage__atomfile('stage3/envs:package.env').with(kind: 'package.env', root: '/var/lib/portage-targets/stage3') }
+    it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/env/lowjobs').with_content(%r{^MAKEOPTS="-j1"$}) }
+    it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/package.env/envs').with_content(%r{^dev-qt/qtwebengine lowjobs$}) }
+
+    %w[package.use package.env env repos.conf].each do |dir|
+      it { is_expected.to contain_file("/var/lib/portage-targets/stage3/etc/portage/#{dir}").with(ensure: 'directory', purge: true) }
+      it { is_expected.to contain_portage__managed_dir("/var/lib/portage-targets/stage3/etc/portage/#{dir}") }
+    end
+
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage').with(ensure: 'directory') }
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage').without_recurse.without_purge }
     it { is_expected.not_to contain_file('/var/lib/portage-targets/stage3/etc/portage/gnupg') }

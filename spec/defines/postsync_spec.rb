@@ -13,6 +13,7 @@ describe 'portage::postsync' do
     let(:params) { super().merge(per_repo: true) }
 
     it { is_expected.to contain_file('/etc/portage/repo.postsync.d').with(ensure: 'directory', purge: true) }
+    it { is_expected.to contain_portage__managed_dir('/etc/portage/repo.postsync.d') }
     it { is_expected.to contain_file('/etc/portage/repo.postsync.d/10-notify').with_mode('0755') }
     it { is_expected.not_to contain_file('/etc/portage/postsync.d/10-notify') }
   end
@@ -22,12 +23,16 @@ describe 'portage::postsync' do
 
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/postsync.d').with(recurse: false, purge: false, ignore: ['local-*']) }
     it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/postsync.d/10-notify') }
+    it { is_expected.to contain_portage__managed_dir('/var/lib/portage-targets/stage3/etc/portage/postsync.d').with(purge: false, purge_ignore: ['local-*']) }
   end
 
   context 'with two hooks in one target' do
     let(:pre_condition) { "portage::postsync { 'host/20-other': root => '/', content => '#!/bin/sh' }" }
 
     it { is_expected.to compile.with_all_deps }
+    it { is_expected.to contain_portage__managed_dir('/etc/portage/postsync.d') }
+    it { is_expected.to contain_file('/etc/portage/postsync.d/10-notify').with(ensure: 'file', mode: '0755') }
+    it { is_expected.to contain_file('/etc/portage/postsync.d/20-other').with(ensure: 'file', mode: '0755', content: '#!/bin/sh') }
   end
 
   context 'with an invalid filename' do

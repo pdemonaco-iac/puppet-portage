@@ -99,8 +99,12 @@ describe 'portage::buildhost::publish' do
   context 'with custom paths' do
     let(:params) { super().merge(mirror_dir: '/srv/mirror', binhost_dir: '/srv/packages', script_path: '/usr/local/bin/publish') }
 
-    it { is_expected.to contain_file('/srv/mirror/gentoo') }
-    it { is_expected.to contain_file('/srv/packages/desktop') }
+    it { is_expected.to contain_file('/srv/mirror').with(ensure: 'directory', mode: '0755') }
+    it { is_expected.to contain_file('/srv/mirror/gentoo').with_ensure('directory') }
+    it { is_expected.to contain_file('/srv/mirror/guru').with_ensure('directory') }
+    it { is_expected.to contain_file('/srv/packages').with(ensure: 'directory', mode: '0755') }
+    it { is_expected.to contain_file('/srv/packages/desktop').with_ensure('directory') }
+    it { is_expected.to contain_file('/srv/packages/server').with_ensure('directory') }
     it { is_expected.to contain_file('/usr/local/bin/publish').with_content(%r{^binhost_dir=/srv/packages$}) }
     it { is_expected.to contain_cron('portage-publish').with_command('/usr/local/bin/publish') }
   end

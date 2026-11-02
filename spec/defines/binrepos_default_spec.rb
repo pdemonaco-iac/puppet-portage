@@ -7,6 +7,7 @@ describe 'portage::binrepos_default' do
   let(:params) { { root: '/', frozen: true } }
 
   it { is_expected.to contain_file('/etc/portage/binrepos.conf').with(ensure: 'directory', purge: true) }
+  it { is_expected.to contain_portage__managed_dir('/etc/portage/binrepos.conf') }
 
   it do
     is_expected.to contain_file('/etc/portage/binrepos.conf/DEFAULT.conf').with(
@@ -33,6 +34,9 @@ describe 'portage::binrepos_default' do
         resumecommand: 'wget -c "${URI}" -P "${DISTDIR}"',
       }
     end
+
+    it { is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/binrepos.conf').with(ensure: 'directory', purge: true) }
+    it { is_expected.to contain_portage__managed_dir('/var/lib/portage-targets/stage3/etc/portage/binrepos.conf') }
 
     it do
       is_expected.to contain_file('/var/lib/portage-targets/stage3/etc/portage/binrepos.conf/DEFAULT.conf')

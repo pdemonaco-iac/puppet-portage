@@ -19,6 +19,7 @@ describe 'portage::mask' do
   context 'with unmask' do
     let(:params) { super().merge(unmask: true) }
 
+    it { is_expected.to contain_portage__atomfile('host/pins:package.unmask').with(kind: 'package.unmask', root: '/') }
     it { is_expected.to contain_file('/etc/portage/package.unmask').with(ensure: 'directory', purge: true) }
     it { is_expected.to contain_file('/etc/portage/package.unmask/pins') }
     it { is_expected.not_to contain_file('/etc/portage/package.mask/pins') }
